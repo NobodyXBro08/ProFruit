@@ -1,0 +1,101 @@
+.opinions {
+  padding: 4rem 1.5rem 3rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  font-family: var(--inter);
+}
+
+.opinions-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.opinions-title {
+  font-size: var(--size-large);
+  color: var(--darkGreen);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.opinions-subtitle {
+  font-size: calc(var(--size-extrasmall) * 1.6);
+  color: #4b4b4b;
+}
+
+/* Grid */
+.opinions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.75rem;
+}
+
+/* Tarjeta */
+.opinion-card {
+  background: var(--white);
+  border-radius: 14px;
+  border: 1px solid #ececec;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+  position: relative;
+}
+
+/* Icono comillas */
+.opinion-quote-icon {
+  color: var(--lightPink);
+  font-size: 22px;
+  margin-bottom: 0.75rem;
+}
+
+/* Estrellas */
+.opinion-stars {
+  display: flex;
+  gap: 0.2rem;
+  color: #f6b400;
+  margin-bottom: 0.75rem;
+}
+
+/* Texto reseña */
+.opinion-text {
+  font-size: calc(var(--size-extrasmall) * 1.6);
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+}
+
+/* Usuario */
+.opinion-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.opinion-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--darkGreen);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: calc(var(--size-extrasmall) * 1.4);
+}
+
+.opinion-name {
+  font-weight: 600;
+  color: var(--black);
+  font-size: calc(var(--size-extrasmall) * 1.5);
+}
+
+.opinion-city {
+  font-size: calc(var(--size-extrasmall) * 1.4);
+  color: #777;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .opinions-grid {
+    grid-template-columns: 1fr;
+  }
+}
