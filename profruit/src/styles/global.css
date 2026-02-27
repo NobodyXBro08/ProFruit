@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+:root{
+  /* colores */
+  --darkGreen: #12481C;
+  --white:     #FFFFFF;
+  --black:     #1E1E1E;
+  --lightGreen:#6FFF89;
+  --lightYellow: #F9E27D;
+  --lightBlue:  #079ade;
+  --lightPink:  #ff6f91;
+
+  /* tipografía */
+  --inter: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* tamaños de letra */
+  --size-extrasmall: 10px;
+  --size-small:  20px;
+  --size-medium: 32px;
+  --size-large:  48px;
+  --size-extralarge: 80px;
+
+  /* fondo principal (global) */
+  --background: var(--white);
+}

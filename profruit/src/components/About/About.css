@@ -1,0 +1,115 @@
+.about {
+  position: relative;
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1.5rem;
+  color: var(--white);
+  overflow: hidden;
+  text-align: center;
+  font-family: var(--inter);
+  background: var(--background);
+}
+
+.about-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.about-bg-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(4px);
+  transform: scale(1.05);
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+}
+
+.about-bg-layer.active {
+  opacity: 1;
+}
+
+.about-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.about-content {
+  position: relative;
+  z-index: 1;
+  max-width: 850px;
+}
+
+.about-title {
+  font-size: var(--size-extralarge);
+  font-family: var(--inter);
+  font-weight: 700;
+  color: var(--white);
+  display: block;
+  margin-bottom: 2rem;
+}
+
+.about-subtitle {
+  font-size: var(--size-medium);
+  font-family: var(--inter);
+  font-weight: 500;
+  color: var(--white);
+  display: block;
+  margin-bottom: 4rem;
+}
+
+.about-description {
+  font-size: var(--size-small);
+  font-family: var(--inter);
+  font-weight: 400;
+  color: var(--white);
+  margin-bottom: 1.5rem;
+  line-height: 1.4;
+}
+
+.about-buttons {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.button-primary {
+  background: var(--darkGreen);
+  color: var(--white);
+  padding: 0.75rem 2rem;
+  border-radius: 12px;
+  font-family: var(--inter);
+  font-weight: 600;
+  font-size: var(--size-small);
+  text-decoration: none;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.button-primary:hover {
+  background: #0f3a15;
+  transform: translateY(-2px);
+}
+
+.button-secondary {
+  background: var(--white);
+  color: var(--darkGreen);
+  padding: 0.75rem 2rem;
+  border-radius: 12px;
+  font-family: var(--inter);
+  font-weight: 600;
+  font-size: var(--size-small);
+  text-decoration: none;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.button-secondary:hover {
+  background: #e7e7e7;
+  transform: translateY(-2px);
+}

@@ -1,0 +1,90 @@
+.navbar-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 999; 
+  background: var(--white); 
+  color: var(--darkGreen);   
+  font-family: var(--inter);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+}
+
+
+.navbar-brand { 
+  font-size: var(--size-medium); 
+  color: var(--darkGreen);
+  text-decoration: none; 
+  font-weight: bold;
+  padding-left: 6rem;
+}
+
+.navbar-menu { 
+  display: flex; 
+  gap: 2rem; 
+  align-items: center;
+  list-style: none;
+}
+
+.navbar-menu a { 
+  color: var(--darkGreen); 
+  text-decoration: none;
+}
+
+.navbar-actions { 
+  display:flex; 
+  gap:1.5rem; 
+  align-items:center;
+  padding-right: 4rem;
+}
+
+.navbar-actions button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.button-cart {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-cart {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: var(--lightGreen);
+  color: var(--darkGreen);
+  font-size: var(--size-extrasmall);
+  font-weight: 600;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button-login {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1.6rem;
+  background: var(--lightGreen); 
+  border-radius: 999px;          
+  border: none;
+  font-family: var(--inter);
+  font-size: var(--size-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+.button-login:hover {
+  background: var(--lightGreen); 
+}
+
