@@ -9,6 +9,7 @@ import AnillosManzana from '../../assets/images/AnillosDeManzana.jpg';
 
 const defaultImages = [MangoDeshidratado, PinaDeshidratada, ChipsBanano, AnillosManzana];
 
+/** Formatea precio numérico en pesos colombianos (COP). */
 function formatPrice(value) {
   if (value == null) return '';
   return new Intl.NumberFormat('es-CO', {
@@ -19,6 +20,7 @@ function formatPrice(value) {
   }).format(value);
 }
 
+/** Estrellas fijas de valoración visual (no ligadas a datos de BD). */
 function renderStars() {
   const total = 5;
   return Array.from({ length: total }).map((_, idx) =>
@@ -26,12 +28,17 @@ function renderStars() {
   );
 }
 
+/**
+ * Catálogo de productos: consume la API del backend (proxy en desarrollo) y muestra carrusel horizontal.
+ * Estados: carga, error o lista renderizada con precio y peso.
+ */
 export default function Products() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const carouselRef = useRef(null);
 
+  /* Carga inicial de productos desde /api/products (Next.js en puerto 3000 con proxy CRA). */
   useEffect(() => {
     fetch('/api/products')
       .then(async (res) => {
@@ -60,6 +67,7 @@ export default function Products() {
     return defaultImages[index % defaultImages.length];
   };
 
+  /** Desplaza el carrusel una tarjeta hacia la izquierda o la derecha. */
   const scrollCarousel = (direction) => {
     const el = carouselRef.current;
     if (!el) return;
@@ -106,6 +114,7 @@ export default function Products() {
         </p>
       </div>
 
+      {/* Carrusel: flechas + contenedor con scroll horizontal */}
       <div className="products-carousel-wrapper">
         <button
           type="button"

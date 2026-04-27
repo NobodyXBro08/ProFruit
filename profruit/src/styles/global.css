@@ -23,3 +23,20 @@
   /* fondo principal (global) */
   --background: var(--white);
 }
+
+/* Navegación por anclas: el navbar fijo no tapa el título de cada sección */
+html {
+  scroll-behavior: smooth;
+}
+
+#about,
+#products,
+#opinions,
+#jobs,
+#contact {
+  scroll-margin-top: 5.5rem;
+}
+
+#inicio {
+  scroll-margin-top: 0;
+}

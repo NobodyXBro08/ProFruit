@@ -1,31 +1,58 @@
-import React from 'react';
-import { FaRegUser } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { FaRegUser, FaBars, FaTimes } from 'react-icons/fa';
 import { IoCartOutline } from 'react-icons/io5';
 import './Navbar.css';
 
+/**
+ * Barra de navegación fija. Enlace a secciones de la misma página mediante anclas (#about, #products, etc.).
+ * En móvil muestra menú hamburguesa con los mismos enlaces.
+ */
 export default function Navbar() {
-  return (
-    <header className="navbar-container">
-      <a className="navbar-brand" href="/">ProFruit</a>
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-      <nav>
+  const closeMenu = () => setIsMenuOpen(false);
+
+  return (
+    <header className={`navbar-container ${isMenuOpen ? 'navbar-container--open' : ''}`}>
+      <a className="navbar-brand" href="#inicio" onClick={closeMenu}>ProFruit</a>
+
+      <button
+        type="button"
+        className="navbar-hamburger"
+        aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+        aria-expanded={isMenuOpen}
+        onClick={() => setIsMenuOpen(!isMenuOpen)}
+      >
+        {isMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+      </button>
+
+      <nav className={`navbar-nav ${isMenuOpen ? 'navbar-nav--open' : ''}`}>
         <ul className="navbar-menu">
-          <li><a href="/">Inicio</a></li>
-          <li><a href="/products">Productos</a></li>
-          <li><a href="/opinions">Opiniones</a></li>
-          <li><a href="/jobs">Trabajamos</a></li>
-          <li><a href="/contact">Contacto</a></li>
+          <li><a href="#inicio" onClick={closeMenu}>Inicio</a></li>
+          <li><a href="#about" onClick={closeMenu}>Nosotros</a></li>
+          <li><a href="#products" onClick={closeMenu}>Productos</a></li>
+          <li><a href="#opinions" onClick={closeMenu}>Opiniones</a></li>
+          <li><a href="#jobs" onClick={closeMenu}>Trabajamos</a></li>
+          <li><a href="#contact" onClick={closeMenu}>Contacto</a></li>
         </ul>
+
+        <div className="navbar-actions navbar-actions--mobile">
+          <button className="button-cart" type="button" aria-label="Carrito" onClick={closeMenu}>
+            <IoCartOutline size={22} aria-hidden />
+            <span className="badge-cart">1</span>
+          </button>
+          <button className="button-login" type="button" onClick={closeMenu}>
+            <FaRegUser size={18} aria-hidden />
+            <span>Login</span>
+          </button>
+        </div>
       </nav>
 
-      <div className="navbar-actions">
-        {/* Carrito */}
+      <div className="navbar-actions navbar-actions--desktop">
         <button className="button-cart" type="button" aria-label="Carrito">
           <IoCartOutline size={22} aria-hidden />
           <span className="badge-cart">1</span>
         </button>
-
-        {/* Login */}
         <button className="button-login" type="button">
           <FaRegUser size={18} aria-hidden />
           <span>Login</span>

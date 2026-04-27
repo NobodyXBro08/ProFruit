@@ -1,4 +1,3 @@
-// src/components/JobsWithUs/JobsWithUs.jsx
 import React from 'react';
 import './JobWithUs.css';
 import { FiShoppingBag, FiHome, FiTruck, FiUsers } from 'react-icons/fi';
@@ -34,6 +33,9 @@ const partners = [
   },
 ];
 
+/**
+ * Aliados y red comercial: tarjetas de socios y bloque CTA para nuevos aliados.
+ */
 export default function JobsWithUs() {
   return (
     <section className="jobs" id="jobs">

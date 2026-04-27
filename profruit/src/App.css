@@ -1,3 +1,12 @@
+/* Raíz de la app: una sola columna bajo el navbar fijo */
+.app-root {
+  min-height: 100vh;
+}
+
+.app-main {
+  display: block;
+}
+
 .App {
   text-align: center;
 }

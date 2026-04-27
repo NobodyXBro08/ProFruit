@@ -3,9 +3,12 @@ import './Footer.css';
 import { FaFacebookF, FaInstagram, FaTwitter } from 'react-icons/fa';
 import { FiPhone, FiMail, FiMapPin } from 'react-icons/fi';
 
+/**
+ * Pie de página: información de la empresa, contacto y enlaces internos por ancla (#inicio, #products, …).
+ */
 export default function Footer() {
   return (
-    <footer className="footer">
+    <footer className="footer" id="contact">
       <div className="footer-inner">
 
         {/* columnas superiores */}
@@ -57,10 +60,11 @@ export default function Footer() {
             <h4 className="footer-heading">Enlaces</h4>
             <ul className="footer-links">
               <li><a href="#inicio">Inicio</a></li>
-              <li><a href="/products">Productos</a></li>
-              <li><a href="/opinions">Opiniones</a></li>
-              <li><a href="/allies">Trabjamos Con</a></li>
-              <li><a href="/contact">Contacto</a></li>
+              <li><a href="#about">Nosotros</a></li>
+              <li><a href="#products">Productos</a></li>
+              <li><a href="#opinions">Opiniones</a></li>
+              <li><a href="#jobs">Trabajamos con</a></li>
+              <li><a href="#contact">Contacto</a></li>
             </ul>
           </div>
 

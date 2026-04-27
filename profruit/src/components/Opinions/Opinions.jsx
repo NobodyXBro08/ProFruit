@@ -1,4 +1,3 @@
-// src/components/Opinions/Opinions.jsx
 import React from 'react';
 import './Opinions.css';
 import { FaStar } from 'react-icons/fa';
@@ -43,6 +42,9 @@ function renderStars(count) {
   return Array.from({ length: count }).map((_, i) => <FaStar key={i} />);
 }
 
+/**
+ * Testimonios de clientes: grid de tarjetas con datos estáticos definidos en `testimonials`.
+ */
 export default function Opinions() {
   return (
     <section className="opinions" id="opinions">

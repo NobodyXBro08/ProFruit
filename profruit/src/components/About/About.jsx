@@ -9,6 +9,9 @@ import Naranja from '../../assets/images/Naranja.jpg';
 
 const bgImages = [Aguacate, Sandia, Pan, Limon, Naranja];
 
+/**
+ * Sección hero / “Nosotros”: fondo rotativo con imágenes de productos y llamadas a la acción hacia otras secciones.
+ */
 export default function About() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -22,6 +25,7 @@ export default function About() {
 
   return (
     <section className="about" id="about">
+      {/* Capas de fondo con transición controlada por currentIndex */}
       <div className="about-bg">
         {bgImages.map((src, index) => (
           <div
@@ -44,8 +48,8 @@ export default function About() {
         </h3>
 
         <div className="about-buttons">
-          <a href="/products" className="button-primary">Ver Productos</a>
-          <a href="/contact" className="button-secondary">Contactar</a>
+          <a href="#products" className="button-primary">Ver Productos</a>
+          <a href="#contact" className="button-secondary">Contactar</a>
         </div>
       </div>
     </section>
