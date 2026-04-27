@@ -1,30 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Products.css';
-import { FaStar, FaRegStar, FaShoppingCart, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaShoppingCart, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import MangoDeshidratado from '../../assets/images/MangoDeshidratado.jpg';
 import PinaDeshidratada from '../../assets/images/PiñaAnillos.jpg';
 import ChipsBanano from '../../assets/images/ChipsDeBanano.jpg';
 import AnillosManzana from '../../assets/images/AnillosDeManzana.jpg';
+import { formatPrice } from '../../utils/formatPrice';
+import { CatalogProductStars } from '../../utils/stars';
 
 const defaultImages = [MangoDeshidratado, PinaDeshidratada, ChipsBanano, AnillosManzana];
 
-/** Formatea precio numérico en pesos colombianos (COP). */
-function formatPrice(value) {
-  if (value == null) return '';
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-/** Estrellas fijas de valoración visual (no ligadas a datos de BD). */
-function renderStars() {
-  const total = 5;
-  return Array.from({ length: total }).map((_, idx) =>
-    idx < 4 ? <FaStar key={idx} /> : <FaRegStar key={idx} />,
+function ProductsSectionHeader({ subtitle, subtitleClassName = 'products-subtitle' }) {
+  return (
+    <div className="products-header">
+      <h2 className="products-title">Nuestros Productos</h2>
+      <p className={subtitleClassName}>{subtitle}</p>
+    </div>
   );
 }
 
@@ -80,10 +72,7 @@ export default function Products() {
   if (loading) {
     return (
       <section className="products" id="products">
-        <div className="products-header">
-          <h2 className="products-title">Nuestros Productos</h2>
-          <p className="products-subtitle">Cargando productos desde la base de datos…</p>
-        </div>
+        <ProductsSectionHeader subtitle="Cargando productos desde la base de datos…" />
         <div className="products-carousel-loading">
           <p>Cargando…</p>
         </div>
@@ -94,25 +83,19 @@ export default function Products() {
   if (error) {
     return (
       <section className="products" id="products">
-        <div className="products-header">
-          <h2 className="products-title">Nuestros Productos</h2>
-          <p className="products-subtitle" style={{ color: '#c00' }}>
-            {error}. Asegúrate de que el backend esté corriendo en el puerto 3000.
-          </p>
-        </div>
+        <ProductsSectionHeader
+          subtitle={`${error}. Asegúrate de que el backend esté corriendo en el puerto 3000.`}
+          subtitleClassName="products-subtitle products-subtitle--error"
+        />
       </section>
     );
   }
 
   return (
     <section className="products" id="products">
-      <div className="products-header">
-        <h2 className="products-title">Nuestros Productos</h2>
-        <p className="products-subtitle">
-          Descubre nuestra selección de frutas deshidratadas de la más alta calidad,
-          cultivadas y procesadas con el máximo cuidado.
-        </p>
-      </div>
+      <ProductsSectionHeader
+        subtitle="Descubre nuestra selección de frutas deshidratadas de la más alta calidad, cultivadas y procesadas con el máximo cuidado."
+      />
 
       {/* Carrusel: flechas + contenedor con scroll horizontal */}
       <div className="products-carousel-wrapper">
@@ -143,7 +126,9 @@ export default function Products() {
                 <div className="product-card-body">
                   <h3 className="product-name">{product.name}</h3>
                   <div className="product-rating-row">
-                    <div className="product-stars">{renderStars()}</div>
+                    <div className="product-stars">
+                      <CatalogProductStars />
+                    </div>
                   </div>
                   <p className="product-description">{product.description}</p>
                   <div className="product-price-row">

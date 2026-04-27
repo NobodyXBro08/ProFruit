@@ -3,6 +3,22 @@ import { FaRegUser, FaBars, FaTimes } from 'react-icons/fa';
 import { IoCartOutline } from 'react-icons/io5';
 import './Navbar.css';
 
+/** Botones Carrito y Login (misma UI en móvil dentro del menú y en escritorio). */
+function NavbarActions({ className, onActionClick }) {
+  return (
+    <div className={className}>
+      <button className="button-cart" type="button" aria-label="Carrito" onClick={onActionClick}>
+        <IoCartOutline size={22} aria-hidden />
+        <span className="badge-cart">1</span>
+      </button>
+      <button className="button-login" type="button" onClick={onActionClick}>
+        <FaRegUser size={18} aria-hidden />
+        <span>Login</span>
+      </button>
+    </div>
+  );
+}
+
 /**
  * Barra de navegación fija. Enlace a secciones de la misma página mediante anclas (#about, #products, etc.).
  * En móvil muestra menú hamburguesa con los mismos enlaces.
@@ -36,28 +52,10 @@ export default function Navbar() {
           <li><a href="#contact" onClick={closeMenu}>Contacto</a></li>
         </ul>
 
-        <div className="navbar-actions navbar-actions--mobile">
-          <button className="button-cart" type="button" aria-label="Carrito" onClick={closeMenu}>
-            <IoCartOutline size={22} aria-hidden />
-            <span className="badge-cart">1</span>
-          </button>
-          <button className="button-login" type="button" onClick={closeMenu}>
-            <FaRegUser size={18} aria-hidden />
-            <span>Login</span>
-          </button>
-        </div>
+        <NavbarActions className="navbar-actions navbar-actions--mobile" onActionClick={closeMenu} />
       </nav>
 
-      <div className="navbar-actions navbar-actions--desktop">
-        <button className="button-cart" type="button" aria-label="Carrito">
-          <IoCartOutline size={22} aria-hidden />
-          <span className="badge-cart">1</span>
-        </button>
-        <button className="button-login" type="button">
-          <FaRegUser size={18} aria-hidden />
-          <span>Login</span>
-        </button>
-      </div>
+      <NavbarActions className="navbar-actions navbar-actions--desktop" />
     </header>
   );
 }

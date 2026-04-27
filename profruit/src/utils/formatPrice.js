@@ -1,0 +1,10 @@
+/** Formatea precio numérico en pesos colombianos (COP). */
+export function formatPrice(value) {
+  if (value == null) return '';
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}

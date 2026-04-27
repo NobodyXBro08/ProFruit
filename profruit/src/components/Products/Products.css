@@ -23,6 +23,10 @@
   color: #4b4b4b;
 }
 
+.products-subtitle--error {
+  color: #c00;
+}
+
 /* Carousel */
 .products-carousel-loading {
   text-align: center;

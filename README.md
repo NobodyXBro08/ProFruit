@@ -1,6 +1,7 @@
-# 🥭 ProFruit — Frontend
+# 🥭 ProFruit
 
-Este repositorio contiene la **parte Frontend del proyecto ProFruit**, una plataforma desarrollada para mostrar y comercializar frutos deshidratados de alta calidad.  
-Aquí encontrarás toda la estructura visual, estilos, componentes y lógica de interfaz construidos con **React**.
+El código de la aplicación (React, backend Next.js y documentación detallada) está en la carpeta **`profruit/`**. En la raíz solo hay un `package.json` mínimo que reenvía comandos a `profruit`.
 
-El objetivo principal es ofrecer una experiencia rápida, moderna y fácil de usar para los clientes y aliados de ProFruit.
+- Instalación: `cd profruit` y `npm install`, o desde la raíz: `npm run install:app`
+- Desarrollo: `npm run dev` (desde la raíz) o `cd profruit && npm run dev`
+- Más detalle: [profruit/README.md](profruit/README.md)
