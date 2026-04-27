@@ -1,5 +1,7 @@
 # ProFruit — Frontend web
 
+Este README describe **solo la aplicación React** en esta carpeta. La **API** (Next.js + MySQL) está documentada en [backend/README.md](backend/README.md). Una vista general del repositorio completo está en el [README de la raíz](../README.md).
+
 ## Evidencia de producto
 
 **GA7-220501096-AA4-EV03** — Módulos de software codificados y probados (integración de interfaz y navegación).
