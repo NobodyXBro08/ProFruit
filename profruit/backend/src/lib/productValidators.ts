@@ -1,17 +1,5 @@
 import type { Product } from "./products";
 
-/** Resultado de parseo de `id` en query string (GET/DELETE). */
-export function parseProductIdParam(id: string | null): { ok: true; id: number } | { ok: false; error: string } {
-  if (id === null || String(id).trim() === "") {
-    return { ok: false, error: "El parámetro id es obligatorio." };
-  }
-  const n = Number(id);
-  if (!Number.isInteger(n) || n < 1) {
-    return { ok: false, error: "El id debe ser un número entero positivo." };
-  }
-  return { ok: true, id: n };
-}
-
 type CreateFields = Pick<Product, "name" | "description" | "price" | "stock"> & { weight?: string };
 
 /**

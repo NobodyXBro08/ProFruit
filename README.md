@@ -30,3 +30,14 @@ Desde la **raíz** del repo también puedes usar:
 - `npm run dev` — equivale a `npm run dev` dentro de `profruit/`
 
 Más detalle en los README enlazados arriba.
+
+## Docker (MySQL + API + frontend)
+
+```bash
+docker compose up --build -d
+```
+
+- **Web:** `http://localhost:8080` (variable `FRONTEND_PORT`)
+- **API directa:** `http://localhost:3000` (`API_PUBLISH_PORT`)
+
+Detalle: [`docker/README.md`](docker/README.md).

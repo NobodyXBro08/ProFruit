@@ -21,7 +21,7 @@ ProFruit es una aplicación web de una sola página (SPA de presentación) para 
 | Interfaz | React 19 (Create React App) |
 | Estilos | CSS modular por componente |
 | Iconos | react-icons |
-| Datos de productos | Fetch a `/api/products` (proxy en desarrollo hacia Next.js + MySQL en `backend/`) |
+| Datos de productos | `fetch('/api/products')` — proxy CRA en dev; en Docker nginx reenvía `/api` al contenedor backend |
 
 ---
 
@@ -49,6 +49,8 @@ Compilación de producción:
 ```bash
 npm run build
 ```
+
+Stack en contenedores (MySQL + API + esta SPA): desde la raíz del repo, `docker compose up --build -d` — interfaz en **http://localhost:8080** ([`docker/README.md`](../docker/README.md)).
 
 Pruebas unitarias (Jest + Testing Library):
 

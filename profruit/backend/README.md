@@ -28,24 +28,17 @@ npm install
 
 ## Configuración
 
-1. Copia el archivo de ejemplo de variables de entorno:
+1. Crea el archivo **`.env.local`** en esta carpeta (`backend/`) con las variables de conexión a MySQL:
 
-   ```bash
-   # PowerShell (Windows)
-   Copy-Item .env.example .env.local
-   ```
+   | Variable      | Descripción        |
+   |---------------|--------------------|
+   | `DB_HOST`     | Host (ej. `localhost`; con Docker ver [docker/README.md](../../docker/README.md)) |
+   | `DB_PORT`     | Puerto (por defecto `3306`) |
+   | `DB_USER`     | Usuario de MySQL |
+   | `DB_PASSWORD` | Contraseña       |
+   | `DB_NAME`     | Nombre de la base de datos |
 
-2. Edita **`.env.local`** con tus datos de MySQL:
-
-   | Variable     | Descripción        |
-   |--------------|--------------------|
-   | `DB_HOST`    | Host (ej. `localhost`) |
-   | `DB_PORT`    | Puerto (por defecto `3306`) |
-   | `DB_USER`    | Usuario de MySQL |
-   | `DB_PASSWORD`| Contraseña       |
-   | `DB_NAME`    | Nombre de la base de datos |
-
-3. Crea las tablas que necesita la aplicación. Para **usuarios** puedes usar algo como:
+2. Crea las tablas que necesita la aplicación. Para **usuarios** puedes usar algo como:
 
    ```sql
    CREATE TABLE IF NOT EXISTS users (
@@ -59,7 +52,7 @@ npm install
 
    La tabla **products** debe coincidir con lo que espera el código en `src/lib/products.ts` (campos como `name`, `description`, `price`, `stock`, `weight`, etc.).
 
-> **Importante:** no subas `.env.local` a Git (contiene secretos). El archivo `.env.example` sirve como plantilla sin contraseñas.
+> **Importante:** no subas `.env.local` a Git (contiene secretos).
 
 ## Cómo ejecutar el proyecto
 
@@ -85,21 +78,19 @@ Resumen de rutas útiles. Las peticiones con cuerpo van en **JSON** (`Content-Ty
 | Método | Ruta | Para qué sirve |
 |--------|------|-----------------|
 | `GET` | `/api/health` | Comprobar que el backend responde |
-| `POST` | `/register` o `/api/register` | Registrar un usuario |
-| `POST` | `/login` o `/api/login` | Iniciar sesión |
+| `POST` | `/api/register` (también `POST /register`, rewrite) | Registrar un usuario |
+| `POST` | `/api/login` (también `POST /login`, rewrite) | Iniciar sesión |
 | `GET` | `/api/products` | Listar productos |
 | `GET` | `/api/products?id=` | Ver un producto por id |
 | `POST` | `/api/products` | Crear producto |
 | `PUT` | `/api/products` | Actualizar producto |
 | `DELETE` | `/api/products?id=` | Eliminar producto |
 
-Para cuerpos de ejemplo, códigos de respuesta y detalles de validación, revisa **`DOCUMENTACION_SERVICIOS_AA5_EV03.md`** en esta misma carpeta.
-
 ## Estructura del código
 
 ```
 backend/
-├── src/app/           # Rutas HTTP (register, login, api/...)
+├── src/app/api/       # Rutas HTTP (rewrites `/login` y `/register` → aquí)
 ├── src/lib/           # Lógica: auth, productos, base de datos, validaciones
 ├── package.json
 ├── next.config.mjs

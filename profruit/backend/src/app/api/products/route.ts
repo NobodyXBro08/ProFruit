@@ -1,30 +1,16 @@
 import { NextResponse } from "next/server";
 import { createProduct, deleteProduct, getProductById, listProducts, updateProduct } from "@/lib/products";
-import { parseProductIdParam, validateProductCreate, validateProductUpdate } from "@/lib/productValidators";
+import { readJsonBody, parseQueryId } from "@/lib/http";
+import { validateProductCreate, validateProductUpdate } from "@/lib/productValidators";
 
-/**
- * API REST de productos (entidad principal ProFruit) — GA7-220501096-AA5-EV03.
- * GET: lista completa o consulta por `?id=` | POST: crear | PUT: actualizar | DELETE: eliminar por `?id=`
- */
-async function readJsonBody(request: Request): Promise<{ ok: true; body: unknown } | { ok: false; response: NextResponse }> {
-  try {
-    const body = await request.json();
-    return { ok: true, body };
-  } catch {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: "Cuerpo JSON inválido." }, { status: 400 }),
-    };
-  }
-}
-
+/** GET lista o `?id=` | POST crear | PUT actualizar | DELETE `?id=` */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
 
   try {
     if (id !== null && id !== "") {
-      const parsed = parseProductIdParam(id);
+      const parsed = parseQueryId(id);
       if (!parsed.ok) {
         return NextResponse.json({ error: parsed.error }, { status: 400 });
       }
@@ -107,7 +93,7 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
-    const parsed = parseProductIdParam(id);
+    const parsed = parseQueryId(id);
     if (!parsed.ok) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });
     }

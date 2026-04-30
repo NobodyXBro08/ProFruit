@@ -1,29 +1,7 @@
 import { NextResponse } from "next/server";
 import { hashPassword } from "@/lib/auth";
+import { readJsonBody, parseQueryId } from "@/lib/http";
 import { deleteUser, getUserById, listUsers, updateUser } from "@/lib/users";
-
-function parseIdParam(id: string | null): { ok: true; id: number } | { ok: false; error: string } {
-  if (id === null || id === "") {
-    return { ok: false, error: "El parámetro id es obligatorio." };
-  }
-  const parsed = Number(id);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return { ok: false, error: "El id debe ser un entero positivo." };
-  }
-  return { ok: true, id: parsed };
-}
-
-async function readJsonBody(request: Request): Promise<{ ok: true; body: unknown } | { ok: false; response: NextResponse }> {
-  try {
-    const body = await request.json();
-    return { ok: true, body };
-  } catch {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: "Cuerpo JSON inválido." }, { status: 400 }),
-    };
-  }
-}
 
 function validateUpdateBody(body: unknown): { ok: true; data: { id: number; username: string; password?: string } } | { ok: false; error: string } {
   if (typeof body !== "object" || body === null) {
@@ -57,7 +35,7 @@ export async function GET(request: Request) {
 
   try {
     if (id !== null && id !== "") {
-      const parsed = parseIdParam(id);
+      const parsed = parseQueryId(id);
       if (!parsed.ok) {
         return NextResponse.json({ error: parsed.error }, { status: 400 });
       }
@@ -108,7 +86,7 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
-    const parsed = parseIdParam(id);
+    const parsed = parseQueryId(id);
     if (!parsed.ok) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
