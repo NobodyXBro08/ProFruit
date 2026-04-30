@@ -1,5 +1,4 @@
-# Raíz: docker compose up --build -d  →  mysql + api + web
-# Ver docker/README.md
+# Levanta los 3: desde la raíz →  npm run up   o   docker compose up --build -d
 
 services:
   mysql:
@@ -9,8 +8,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-profruit_root}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-profruit_db}
-    ports:
-      - "${MYSQL_PUBLISH_PORT:-3306}:3306"
+    ports: ["${MYSQL_PUBLISH_PORT:-3306}:3306"]
     volumes:
       - profruit_mysql_data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
@@ -22,22 +20,17 @@ services:
       start_period: 30s
 
   backend:
-    build:
-      context: ./profruit/backend
-      dockerfile: Dockerfile
+    build: { context: ./backend, dockerfile: Dockerfile }
     container_name: profruit-api
     restart: unless-stopped
-    ports:
-      - "${API_PUBLISH_PORT:-3000}:3000"
+    ports: ["${API_PUBLISH_PORT:-3000}:3000"]
     environment:
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-profruit_root}
       DB_NAME: ${MYSQL_DATABASE:-profruit_db}
-    depends_on:
-      mysql:
-        condition: service_healthy
+    depends_on: { mysql: { condition: service_healthy } }
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 15s
@@ -46,16 +39,11 @@ services:
       start_period: 45s
 
   frontend:
-    build:
-      context: ./profruit
-      dockerfile: Dockerfile
+    build: { context: ./frontend, dockerfile: Dockerfile }
     container_name: profruit-web
     restart: unless-stopped
-    ports:
-      - "${FRONTEND_PORT:-8080}:80"
-    depends_on:
-      backend:
-        condition: service_healthy
+    ports: ["${FRONTEND_PORT:-8080}:80"]
+    depends_on: { backend: { condition: service_healthy } }
 
 volumes:
   profruit_mysql_data:

@@ -1,6 +1,5 @@
 {
-  "name": "profruit",
-  "version": "0.1.0",
+  "name": "frontend",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
@@ -21,28 +20,14 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cross-env PORT=3001 react-scripts start"
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:ui\"",
+    "dev:api": "cd ../backend && npm run dev",
+    "dev:ui": "cross-env PORT=3001 react-scripts start"
   },
   "proxy": "http://localhost:3000",
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
+  "eslintConfig": { "extends": ["react-app", "react-app/jest"] },
   "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "production": [">0.2%", "not dead", "not op_mini all"],
+    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
   }
 }

@@ -1,6 +1,5 @@
 {
-  "name": "profruit-backend",
-  "version": "1.0.0",
+  "name": "backend",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -26,4 +25,3 @@
     "eslint-config-next": "14.2.15"
   }
 }
-

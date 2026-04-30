@@ -1,4 +1,4 @@
-# Build y ejecución API Next.js (modo standalone) — ver docker/README.md en la raíz del repo.
+# Next.js standalone — ver README.md en la raíz del repo.
 
 FROM node:20-alpine AS base
 

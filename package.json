@@ -1,12 +1,10 @@
 {
-  "name": "profruit-workspace",
   "private": true,
-  "description": "El código del proyecto vive en la carpeta profruit/. Usa los scripts de aquí o entra en profruit/ y ejecuta npm directamente.",
   "scripts": {
-    "start": "npm run start --prefix profruit",
-    "dev": "npm run dev --prefix profruit",
-    "test": "npm test --prefix profruit",
-    "build": "npm run build --prefix profruit",
-    "install:app": "npm install --prefix profruit"
+    "up": "docker compose up --build -d",
+    "down": "docker compose down",
+    "install": "npm install --prefix frontend && npm install --prefix backend",
+    "dev": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend && npm run build --prefix backend"
   }
 }
