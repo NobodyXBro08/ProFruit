@@ -14,10 +14,11 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "yaml": "^2.8.3"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "cross-env PORT=3001 react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:ui\"",
@@ -25,9 +26,22 @@
     "dev:ui": "cross-env PORT=3001 react-scripts start"
   },
   "proxy": "http://localhost:3000",
-  "eslintConfig": { "extends": ["react-app", "react-app/jest"] },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
   "browserslist": {
-    "production": [">0.2%", "not dead", "not op_mini all"],
-    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }

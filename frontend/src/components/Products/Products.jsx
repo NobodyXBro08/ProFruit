@@ -91,6 +91,17 @@ export default function Products() {
     );
   }
 
+  if (products.length === 0) {
+    return (
+      <section className="products" id="products">
+        <ProductsSectionHeader
+          subtitle="No hay productos en la base de datos. Revisa la tabla products o el seed de Docker (ver documentación del proyecto)."
+          subtitleClassName="products-subtitle"
+        />
+      </section>
+    );
+  }
+
   return (
     <section className="products" id="products">
       <ProductsSectionHeader

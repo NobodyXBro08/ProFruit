@@ -1,7 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "up": "docker compose up --build -d",
+    "up": "docker compose -f docker-compose.yml -f docker-compose.db.yml up --build -d",
+    "up:hostdb": "docker compose up --build -d",
     "down": "docker compose down",
     "install": "npm install --prefix frontend && npm install --prefix backend",
     "dev": "npm run dev --prefix frontend",

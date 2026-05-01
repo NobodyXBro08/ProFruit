@@ -1,0 +1,27 @@
+# MySQL en contenedor + espera a que esté sano antes de marcar el backend listo.
+# Se usa junto con docker-compose.yml: npm run up
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: profruit-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-profruit_root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-profruit_db}
+    ports: ["${MYSQL_PUBLISH_PORT:-3307}:3306"]
+    volumes:
+      - profruit_mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+
+  backend:
+    depends_on: { mysql: { condition: service_healthy } }
+
+volumes:
+  profruit_mysql_data:
