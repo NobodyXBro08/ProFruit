@@ -16,7 +16,7 @@ E-commerce / vitrina de frutos deshidratados: **SPA React** (`frontend/`) + **AP
 | `docker/mysql/init/` | SQL inicial para MySQL en Docker (esquema + seed opcional). |
 | `docker-compose.yml` | **backend + frontend** (API puede usar MySQL del PC o el hostname `mysql`). |
 | `docker-compose.db.yml` | MySQL en contenedor; se combina con el anterior en `npm run up`. |
-| `.env.example` | Plantilla para `DB_HOST=host.docker.internal`, claves, etc. |
+| `.env` | En la **raíz** del repo: variables `DB_*` que usa Docker Compose (y puedes replicar en `backend/.env.local` para desarrollo). |
 
 ## Todo en Docker (3 contenedores)
 
@@ -28,7 +28,7 @@ npm run up
 
 Incluye **`docker-compose.db.yml`** (levanta MySQL + API + web). Abre **http://localhost:8080** (web). API: **http://localhost:3000**. Parar: `npm run down`.
 
-Para **API y web en Docker** pero **base de datos = MySQL instalado en Windows** (la que ya usabas en local), crea un archivo **`.env`** en la raíz (puedes partir de `.env.example`) con al menos:
+Para **API y web en Docker** pero **base de datos = MySQL instalado en Windows**, crea o edita el archivo **`.env`** en la raíz con al menos:
 
 ```env
 DB_HOST=host.docker.internal
@@ -40,9 +40,23 @@ DB_NAME=profruit_db
 
 Luego ejecuta **`npm run up:hostdb`** (no uses `npm run up`, para no levantar el contenedor MySQL). El nombre `host.docker.internal` es la forma estándar de que un contenedor llegue al equipo anfitrión en Docker Desktop para Windows.
 
+Con **`npm run up`** (MySQL en contenedor), ajusta en **`.env`** el host y la clave para que coincidan con el servicio `mysql` del compose (por ejemplo `DB_HOST=mysql` y la misma contraseña que `MYSQL_ROOT_PASSWORD`), o Compose seguirá leyendo el `.env` que tengas y el API apuntará donde indique `DB_HOST`.
+
 ## Requisitos
 
 Node.js 18+, npm, MySQL (o Docker). Si quedó una carpeta vacía **`profruit/`** tras la migración y no se borra, cierra el IDE o el proceso que la bloquee y elimínala a mano.
+
+### Cliente `mysql` en Windows (PATH)
+
+Si en PowerShell `mysql --version` dice que no reconoce el comando, el servidor puede estar instalado (servicio **MySQL80**) pero la carpeta **`bin`** no está en el PATH.
+
+1. Localiza la ruta típica, por ejemplo: `C:\Program Files\MySQL\MySQL Server 8.0\bin` (la versión puede ser 8.4 u otra; revisa en `C:\Program Files\MySQL\`).
+2. **Windows 11/10:** *Configuración* → *Sistema* → *Información* → *Configuración avanzada del sistema* → *Variables de entorno*. En **Path** del usuario o del sistema, *Nuevo* → pega la ruta al `bin` → Aceptar en todos los cuadros.
+3. Cierra y vuelve a abrir el terminal y comprueba: `mysql --version`.
+
+Alternativa sin tocar el PATH: usa la ruta completa, p. ej. `"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p`.
+
+Si solo usas MySQL **dentro de Docker** (`npm run up`), puedes entrar al contenedor: `docker exec -it profruit-mysql mysql -uroot -p`.
 
 ## Desarrollo local
 
