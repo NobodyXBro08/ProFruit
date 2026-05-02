@@ -1,49 +1,78 @@
 import React, { useState } from 'react';
 import { FaRegUser, FaBars, FaTimes } from 'react-icons/fa';
 import { IoCartOutline } from 'react-icons/io5';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import CartDrawer from '../CartDrawer/CartDrawer.jsx';
+import LoginModal from '../LoginModal/LoginModal.jsx';
 import './Navbar.css';
 
-/** Botones Carrito y Login (misma UI en móvil dentro del menú y en escritorio). */
-function NavbarActions({ className, cartCount, onCartClick, onLoginClick }) {
+function NavbarActions({ className, cartCount, user, onCartClick, onLoginOpen, onLogout }) {
+  const cartEnabled = Boolean(user);
   const badge =
-    cartCount > 0 ? (
+    cartEnabled && cartCount > 0 ? (
       <span className="badge-cart">{cartCount > 99 ? '99+' : cartCount}</span>
     ) : null;
   return (
     <div className={className}>
-      <button className="button-cart" type="button" aria-label="Carrito" onClick={onCartClick}>
+      <button
+        className={`button-cart ${!cartEnabled ? 'button-cart--disabled' : ''}`}
+        type="button"
+        aria-label={cartEnabled ? 'Carrito' : 'Carrito: inicia sesión para usarlo'}
+        aria-disabled={!cartEnabled}
+        disabled={!cartEnabled}
+        title={cartEnabled ? undefined : 'Inicia sesión para usar el carrito'}
+        onClick={onCartClick}
+      >
         <IoCartOutline size={22} aria-hidden />
         {badge}
       </button>
-      <button className="button-login" type="button" onClick={onLoginClick}>
-        <FaRegUser size={18} aria-hidden />
-        <span>Login</span>
-      </button>
+      {user ? (
+        <div className="navbar-user-wrap">
+          <span className="navbar-user-name" title={user.fullName || user.username}>
+            {user.fullName || user.username}
+          </span>
+          <button className="button-logout" type="button" onClick={onLogout}>
+            Salir
+          </button>
+        </div>
+      ) : (
+        <button className="button-login" type="button" onClick={onLoginOpen}>
+          <FaRegUser size={18} aria-hidden />
+          <span>Login</span>
+        </button>
+      )}
     </div>
   );
 }
 
-/**
- * Barra de navegación fija. Enlace a secciones de la misma página mediante anclas (#about, #products, etc.).
- * En móvil muestra menú hamburguesa con los mismos enlaces.
- */
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const { totalQuantity } = useCart();
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const { totalQuantity, clearCart } = useCart();
+  const { user, logout } = useAuth();
 
   const closeMenu = () => setIsMenuOpen(false);
 
   const openCart = () => {
+    if (!user) return;
+    setIsLoginOpen(false);
     setIsMenuOpen(false);
     setIsCartOpen(true);
   };
 
-  const goLogin = () => {
+  const openLogin = () => {
+    setIsCartOpen(false);
     closeMenu();
-    window.location.hash = '#contact';
+    setIsLoginOpen(true);
+  };
+
+  const handleLogout = () => {
+    clearCart();
+    setIsCartOpen(false);
+    logout();
+    closeMenu();
   };
 
   return (
@@ -74,19 +103,24 @@ export default function Navbar() {
         <NavbarActions
           className="navbar-actions navbar-actions--mobile"
           cartCount={totalQuantity}
+          user={user}
           onCartClick={openCart}
-          onLoginClick={goLogin}
+          onLoginOpen={openLogin}
+          onLogout={handleLogout}
         />
       </nav>
 
       <NavbarActions
         className="navbar-actions navbar-actions--desktop"
         cartCount={totalQuantity}
+        user={user}
         onCartClick={openCart}
-        onLoginClick={goLogin}
+        onLoginOpen={openLogin}
+        onLogout={handleLogout}
       />
     </header>
     <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+    <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
     </>
   );
 }

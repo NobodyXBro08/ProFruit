@@ -76,6 +76,12 @@
   justify-content: center;
 }
 
+.navbar-actions .button-cart--disabled,
+.navbar-actions .button-cart:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .badge-cart {
   position: absolute;
   top: -6px;
@@ -107,6 +113,44 @@
 }
 .button-login:hover {
   background: var(--lightGreen);
+}
+
+.navbar-user-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: min(200px, 42vw);
+}
+
+.navbar-user-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--darkGreen);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.button-logout {
+  flex-shrink: 0;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(18, 72, 28, 0.35);
+  background: var(--white);
+  color: var(--darkGreen);
+  font-family: var(--inter);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button-logout:hover {
+  background: rgba(111, 255, 137, 0.35);
+}
+
+.navbar-actions .button-logout {
+  border: 1px solid rgba(18, 72, 28, 0.35);
+  background: var(--white);
 }
 
 /* Mobile: menú hamburguesa */
@@ -170,6 +214,19 @@
     gap: 1rem;
     padding: 1rem 1.25rem;
     border-top: 1px solid rgba(0,0,0,0.06);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .navbar-actions--mobile .navbar-user-wrap {
+    max-width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .button-login {
+    font-size: clamp(0.9rem, 3.5vw, var(--size-small));
+    padding: 0.4rem 1rem;
   }
 }
 

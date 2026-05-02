@@ -130,6 +130,14 @@
 }
 
 @media (max-width: 640px) {
+  .jobs {
+    padding: 3rem 1rem 2.5rem;
+  }
+
+  .jobs-title {
+    font-size: clamp(1.5rem, 6vw, var(--size-large));
+  }
+
   .jobs-grid {
     grid-template-columns: 1fr;
   }

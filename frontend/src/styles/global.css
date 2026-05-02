@@ -24,11 +24,28 @@
   --background: var(--white);
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: var(--inter);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
 }
 
 code {
@@ -50,4 +67,24 @@ html {
 
 #inicio {
   scroll-margin-top: 0;
+}
+
+@media (max-width: 768px) {
+  #about,
+  #products,
+  #opinions,
+  #jobs,
+  #contact {
+    scroll-margin-top: 4.25rem;
+  }
+}
+
+@media (max-width: 380px) {
+  #about,
+  #products,
+  #opinions,
+  #jobs,
+  #contact {
+    scroll-margin-top: 3.75rem;
+  }
 }

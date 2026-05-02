@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { FaTimes, FaMinus, FaPlus, FaTrash } from 'react-icons/fa';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import { formatPrice } from '../../utils/formatPrice';
 import './CartDrawer.css';
 
 export default function CartDrawer({ isOpen, onClose }) {
+  const { user } = useAuth();
   const { lines, bumpQuantity, removeLine, subtotal, clearCart } = useCart();
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -24,6 +26,35 @@ export default function CartDrawer({ isOpen, onClose }) {
       document.body.style.overflow = '';
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && !user) onClose();
+  }, [isOpen, user, onClose]);
+
+  useEffect(() => {
+    if (!isOpen || !user) return;
+    if (user.fullName) {
+      setCustomerName((n) => (n.trim() ? n : user.fullName));
+    } else {
+      const u = user.username.trim();
+      if (u.includes('@')) {
+        setCustomerEmail((e) => (e.trim() ? e : u));
+        setCustomerName((n) => (n.trim() ? n : ''));
+      } else {
+        setCustomerName((n) => (n.trim() ? n : u));
+        setCustomerEmail((e) => (e.trim() ? e : ''));
+      }
+    }
+    if (user.email) {
+      setCustomerEmail((e) => (e.trim() ? e : user.email));
+    }
+    if (user.phone) {
+      setCustomerPhone((p) => (p.trim() ? p : user.phone));
+    }
+    if (user.shippingAddress) {
+      setShippingAddress((s) => (s.trim() ? s : user.shippingAddress));
+    }
+  }, [isOpen, user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,6 +81,7 @@ export default function CartDrawer({ isOpen, onClose }) {
           customerPhone: customerPhone.trim() || undefined,
           shippingAddress: shippingAddress.trim() || undefined,
           notes: notes.trim() || undefined,
+          ...(user ? { userId: user.id } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -62,9 +94,7 @@ export default function CartDrawer({ isOpen, onClose }) {
       setCustomerPhone('');
       setShippingAddress('');
       setNotes('');
-      setSuccess(
-        `Pedido #${data.id} registrado. Total: ${formatPrice(data.total)}. Estado: ${data.status}.`
-      );
+      setSuccess(`Pedido #${data.id} registrado. Total: ${formatPrice(data.total)}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al enviar el pedido.');
     } finally {
@@ -143,12 +173,14 @@ export default function CartDrawer({ isOpen, onClose }) {
             </div>
           )}
 
-          <form className="cart-drawer-form" onSubmit={handleSubmit}>
+          <form className="cart-drawer-form" onSubmit={handleSubmit} autoComplete="off">
             <p className="cart-drawer-form-title">Datos para el pedido</p>
             <label className="cart-drawer-label">
-              Nombre
+              Nombre completo
               <input
                 className="cart-drawer-input"
+                name="profuit-customer-name"
+                id="profuit-customer-name"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 autoComplete="name"
@@ -156,9 +188,11 @@ export default function CartDrawer({ isOpen, onClose }) {
               />
             </label>
             <label className="cart-drawer-label">
-              Correo
+              Correo electrónico
               <input
                 className="cart-drawer-input"
+                name="profuit-customer-email"
+                id="profuit-customer-email"
                 type="email"
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}

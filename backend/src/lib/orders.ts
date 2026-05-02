@@ -25,9 +25,6 @@ async function assertUserExists(conn: PoolConnection, userId: number): Promise<v
   if (!rows.length) throw new OrderError("Usuario no encontrado.", 400);
 }
 
-/**
- * Crea pedido, líneas, y descuenta stock en una sola transacción.
- */
 export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedOrder> {
   const { items, customerName, customerEmail, customerPhone, shippingAddress, notes, userId } = input;
 
@@ -40,7 +37,7 @@ export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedO
     const placeholders = productIds.map(() => "?").join(",");
 
     const [lockedRows] = await conn.query<RowDataPacket[]>(
-      `SELECT id, price, stock FROM products WHERE id IN (${placeholders}) FOR UPDATE`,
+      `SELECT id, price, stock, COALESCE(stock_reserved, 0) AS stock_reserved FROM products WHERE id IN (${placeholders}) FOR UPDATE`,
       productIds
     );
 
@@ -50,9 +47,12 @@ export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedO
       throw new OrderError(`Producto(s) no encontrado(s): ${missing.join(", ")}.`, 400);
     }
 
-    const byId = new Map<number, { price: number; stock: number }>();
+    const byId = new Map<number, { price: number; available: number }>();
     for (const r of lockedRows) {
-      byId.set(Number(r.id), { price: Number(r.price), stock: Number(r.stock) });
+      const total = Number(r.stock);
+      const reserved = Number(r.stock_reserved ?? 0);
+      const available = total - reserved;
+      byId.set(Number(r.id), { price: Number(r.price), available });
     }
 
     let total = 0;
@@ -61,9 +61,9 @@ export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedO
     for (const line of items) {
       const p = byId.get(line.productId);
       if (!p) throw new OrderError(`Producto no encontrado: ${line.productId}.`, 400);
-      if (p.stock < line.quantity) {
+      if (p.available < line.quantity) {
         throw new OrderError(
-          `Stock insuficiente para el producto ${line.productId}. Disponible: ${p.stock}, solicitado: ${line.quantity}.`,
+          `Stock insuficiente para el producto ${line.productId}. Disponible: ${p.available}, solicitado: ${line.quantity}.`,
           409
         );
       }
@@ -106,11 +106,11 @@ export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedO
 
     for (const line of resolvedLines) {
       const [upd] = await conn.query<ResultSetHeader>(
-        `UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?`,
+        `UPDATE products SET stock_reserved = stock_reserved + ? WHERE id = ? AND (stock - stock_reserved) >= ?`,
         [line.quantity, line.productId, line.quantity]
       );
       if (upd.affectedRows !== 1) {
-        throw new OrderError("Error al actualizar inventario.", 500);
+        throw new OrderError("Error al apartar inventario.", 500);
       }
     }
 
@@ -120,5 +120,38 @@ export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedO
       total,
       items: resolvedLines,
     };
+  });
+}
+
+export async function finalizePaidOrder(orderId: number): Promise<void> {
+  return withTransaction(async (conn) => {
+    const [orders] = await conn.query<RowDataPacket[]>(
+      "SELECT id, status FROM orders WHERE id = ? FOR UPDATE",
+      [orderId]
+    );
+    if (!orders.length) throw new OrderError("Pedido no encontrado.", 404);
+    const st = String(orders[0].status);
+    if (st !== "pending") {
+      throw new OrderError("Solo se pueden concretar pedidos en estado pendiente.", 409);
+    }
+
+    const [items] = await conn.query<RowDataPacket[]>(
+      "SELECT product_id, quantity FROM order_items WHERE order_id = ?",
+      [orderId]
+    );
+
+    for (const row of items) {
+      const pid = Number(row.product_id);
+      const qty = Number(row.quantity);
+      const [upd] = await conn.query<ResultSetHeader>(
+        `UPDATE products SET stock = stock - ?, stock_reserved = stock_reserved - ? WHERE id = ? AND stock_reserved >= ? AND stock >= ?`,
+        [qty, qty, pid, qty, qty]
+      );
+      if (upd.affectedRows !== 1) {
+        throw new OrderError(`Inventario inconsistente para el producto ${pid}.`, 500);
+      }
+    }
+
+    await conn.query("UPDATE orders SET status = 'paid' WHERE id = ?", [orderId]);
   });
 }

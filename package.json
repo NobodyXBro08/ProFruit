@@ -3,7 +3,7 @@
   "scripts": {
     "up": "docker compose -f docker-compose.yml -f docker-compose.db.yml up --build -d",
     "up:hostdb": "docker compose up --build -d",
-    "down": "docker compose down",
+    "down": "docker compose -f docker-compose.yml -f docker-compose.db.yml down",
     "install": "npm install --prefix frontend && npm install --prefix backend",
     "dev": "npm run dev --prefix frontend",
     "build": "npm run build --prefix frontend && npm run build --prefix backend"

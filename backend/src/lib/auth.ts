@@ -1,23 +1,14 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { pool, query } from "./db";
 
-/** Longitud de clave derivada para almacenamiento seguro (sin guardar contraseña en texto plano). */
 const SCRYPT_KEYLEN = 64;
 
-/**
- * Genera hash con sal aleatoria (formato almacenado: "saltHex:hashHex").
- * Configuración de seguridad para el registro de usuarios.
- */
 export function hashPassword(plain: string): string {
   const salt = randomBytes(16).toString("hex");
   const hash = scryptSync(plain, salt, SCRYPT_KEYLEN).toString("hex");
   return `${salt}:${hash}`;
 }
 
-/**
- * Verifica contraseña contra el hash almacenado (comparación en tiempo constante).
- * Usado en el servicio de inicio de sesión.
- */
 export function verifyPassword(plain: string, stored: string): boolean {
   const parts = stored.split(":");
   if (parts.length !== 2) return false;
@@ -33,7 +24,6 @@ export function verifyPassword(plain: string, stored: string): boolean {
   }
 }
 
-/** Validación: usuario y contraseña no vacíos (tras trim). */
 export function validateCredentials(
   username: unknown,
   password: unknown
@@ -46,18 +36,62 @@ export function validateCredentials(
   return { ok: true };
 }
 
-/** Comprueba si ya existe un usuario con ese nombre (evita duplicados en registro). */
-export async function findUserByUsername(username: string): Promise<{ id: number; password_hash: string } | null> {
-  const rows = await query<{ id: number; password_hash: string }>(
-    "SELECT id, password_hash FROM users WHERE username = ? LIMIT 1",
+export type UserAuthRow = {
+  id: number;
+  password_hash: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  shipping_address: string | null;
+};
+
+export async function findUserByUsername(username: string): Promise<UserAuthRow | null> {
+  const rows = await query<Record<string, unknown>>(
+    "SELECT id, password_hash, full_name, email, phone, shipping_address FROM users WHERE username = ? LIMIT 1",
     [username]
   );
   const row = rows[0];
   if (!row) return null;
-  return { id: row.id, password_hash: String(row.password_hash) };
+  return {
+    id: Number(row.id),
+    password_hash: String(row.password_hash),
+    full_name: row.full_name != null ? String(row.full_name) : null,
+    email: row.email != null ? String(row.email) : null,
+    phone: row.phone != null ? String(row.phone) : null,
+    shipping_address: row.shipping_address != null ? String(row.shipping_address) : null,
+  };
 }
 
-/** Registro: inserta usuario con contraseña hasheada. */
-export async function createUser(username: string, passwordHash: string): Promise<void> {
-  await pool.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", [username, passwordHash]);
+export async function findUserByEmail(email: string): Promise<{ id: number } | null> {
+  const norm = email.trim().toLowerCase();
+  const rows = await query<{ id: number }>(
+    "SELECT id FROM users WHERE LOWER(TRIM(email)) = ? LIMIT 1",
+    [norm]
+  );
+  return rows[0] ?? null;
+}
+
+export type NewUserProfile = {
+  fullName: string;
+  email: string;
+  phone?: string;
+  shippingAddress?: string;
+};
+
+export async function createUser(
+  username: string,
+  passwordHash: string,
+  profile: NewUserProfile
+): Promise<void> {
+  await pool.execute(
+    "INSERT INTO users (username, password_hash, full_name, email, phone, shipping_address) VALUES (?, ?, ?, ?, ?, ?)",
+    [
+      username,
+      passwordHash,
+      profile.fullName,
+      profile.email,
+      profile.phone ?? null,
+      profile.shippingAddress ?? null,
+    ]
+  );
 }

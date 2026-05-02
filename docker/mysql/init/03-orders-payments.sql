@@ -1,10 +1,5 @@
--- Pedidos, líneas de pedido y pagos (ejecutar en profruit_db).
--- En Docker: solo corre en la primera creación del volumen; si la BD ya existía,
--- ejecuta este archivo a mano (ver README o instrucciones del chat).
-
 USE profruit_db;
 
--- 1) Pedidos
 CREATE TABLE IF NOT EXISTS orders (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id INT UNSIGNED NULL,
@@ -26,7 +21,6 @@ CREATE TABLE IF NOT EXISTS orders (
     ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2) Ítems por pedido (precio unitario congelado al momento de la compra)
 CREATE TABLE IF NOT EXISTS order_items (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   order_id INT UNSIGNED NOT NULL,
@@ -44,7 +38,6 @@ CREATE TABLE IF NOT EXISTS order_items (
     ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3) Pagos (pasarela u otros; una orden puede tener varios intentos)
 CREATE TABLE IF NOT EXISTS payments (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   order_id INT UNSIGNED NOT NULL,

@@ -31,9 +31,6 @@ function isValidEmail(s: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
 
-/**
- * Valida el cuerpo para crear un pedido (ítems + datos de contacto).
- */
 export function validateOrderCreate(
   body: unknown
 ): { ok: true; data: ValidatedOrderCreate } | { ok: false; error: string } {
@@ -129,4 +126,22 @@ export function validateOrderCreate(
       userId,
     },
   };
+}
+
+export function validateOrderFinalize(
+  body: unknown
+): { ok: true; id: number } | { ok: false; error: string } {
+  if (body === null || typeof body !== "object") {
+    return { ok: false, error: "El cuerpo debe ser un objeto JSON." };
+  }
+  const o = body as Record<string, unknown>;
+  const idRaw = o.id;
+  const idNum = typeof idRaw === "number" ? idRaw : typeof idRaw === "string" ? Number(idRaw) : Number.NaN;
+  if (!Number.isInteger(idNum) || idNum < 1) {
+    return { ok: false, error: "El campo id es obligatorio y debe ser un entero positivo." };
+  }
+  if (o.status !== "paid") {
+    return { ok: false, error: 'Para concretar la compra envía status: "paid".' };
+  }
+  return { ok: true, id: idNum };
 }

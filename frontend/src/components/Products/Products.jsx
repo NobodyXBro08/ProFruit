@@ -8,6 +8,7 @@ import ChipsBanano from '../../assets/images/ChipsDeBanano.jpg';
 import AnillosManzana from '../../assets/images/AnillosDeManzana.jpg';
 import { formatPrice } from '../../utils/formatPrice';
 import { CatalogProductStars } from '../../utils/stars';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 
 const defaultImages = [MangoDeshidratado, PinaDeshidratada, ChipsBanano, AnillosManzana];
@@ -30,6 +31,7 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const carouselRef = useRef(null);
+  const { user } = useAuth();
   const { addToCart } = useCart();
 
   /* Carga inicial de productos desde /api/products (Next.js en puerto 3000 con proxy CRA). */
@@ -156,6 +158,16 @@ export default function Products() {
                   {isSoldOut ? (
                     <button className="product-btn product-btn--disabled" disabled>
                       No disponible
+                    </button>
+                  ) : !user ? (
+                    <button
+                      type="button"
+                      className="product-btn product-btn--disabled"
+                      disabled
+                      title="Inicia sesión para añadir productos al carrito"
+                    >
+                      <FaShoppingCart />
+                      <span>Inicia sesión para comprar</span>
                     </button>
                   ) : (
                     <button
