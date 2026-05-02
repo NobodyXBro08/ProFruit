@@ -1,0 +1,9 @@
+# Netlify: en el panel, "Base directory" = frontend (si el repo es monorepo).
+# Obligatorio en producción: REACT_APP_API_URL = URL pública de tu API en Railway (sin barra final).
+
+[build]
+  command = "npm run build"
+  publish = "build"
+
+[build.environment]
+  NODE_VERSION = "20"

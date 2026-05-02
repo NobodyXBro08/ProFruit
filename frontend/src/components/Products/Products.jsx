@@ -10,6 +10,7 @@ import { formatPrice } from '../../utils/formatPrice';
 import { CatalogProductStars } from '../../utils/stars';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
+import { apiUrl } from '../../config/api.js';
 
 const defaultImages = [MangoDeshidratado, PinaDeshidratada, ChipsBanano, AnillosManzana];
 
@@ -36,7 +37,7 @@ export default function Products() {
 
   /* Carga inicial de productos desde /api/products (Next.js en puerto 3000 con proxy CRA). */
   useEffect(() => {
-    fetch('/api/products')
+    fetch(apiUrl('/api/products'))
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -88,7 +89,7 @@ export default function Products() {
     return (
       <section className="products" id="products">
         <ProductsSectionHeader
-          subtitle={`${error}. Asegúrate de que el backend esté corriendo en el puerto 3000.`}
+          subtitle={`${error}. Comprueba que el API esté desplegado y que REACT_APP_API_URL (Netlify) coincida con la URL de Railway.`}
           subtitleClassName="products-subtitle products-subtitle--error"
         />
       </section>

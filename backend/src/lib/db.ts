@@ -1,13 +1,33 @@
 import mysql, { type PoolConnection } from "mysql2/promise";
 
+/**
+ * Compatibilidad: variables `DB_*` (local/Docker) y nombres típicos de Railway / MySQL plugin.
+ */
+function dbConfig() {
+  const host =
+    process.env.DB_HOST ?? process.env.MYSQLHOST ?? process.env.MYSQL_HOST ?? "localhost";
+  const port = Number(process.env.DB_PORT ?? process.env.MYSQLPORT ?? process.env.MYSQL_PORT ?? "3306");
+  const user =
+    process.env.DB_USER ?? process.env.MYSQLUSER ?? process.env.MYSQL_USER ?? "root";
+  const password =
+    process.env.DB_PASSWORD ??
+    process.env.MYSQLPASSWORD ??
+    process.env.MYSQL_ROOT_PASSWORD ??
+    "";
+  const database =
+    process.env.DB_NAME ?? process.env.MYSQLDATABASE ?? process.env.MYSQL_DATABASE ?? "profruit_db";
+
+  return { host, port, user, password, database };
+}
+
+const cfg = dbConfig();
+
 /** Pool de conexiones MySQL reutilizado por productos, usuarios y autenticación. */
 export const pool = mysql.createPool({
-  host: process.env.DB_HOST ?? "localhost",
-  port: Number(process.env.DB_PORT ?? "3306"),
-  user: process.env.DB_USER ?? "root",
-  password: process.env.DB_PASSWORD ?? "",
-  database: process.env.DB_NAME ?? "profruit_db",
+  ...cfg,
   connectionLimit: 10,
+  connectTimeout: 15_000,
+  waitForConnections: true,
 });
 
 /**
