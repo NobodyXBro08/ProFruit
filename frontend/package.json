@@ -25,7 +25,7 @@
     "dev:api": "cd ../backend && npm run dev",
     "dev:ui": "cross-env PORT=3001 react-scripts start"
   },
-  "proxy": "http://localhost:3000",
+  "proxy": "http://127.0.0.1:3000",
   "eslintConfig": {
     "extends": [
       "react-app",
