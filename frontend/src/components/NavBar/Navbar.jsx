@@ -1,17 +1,23 @@
 import React, { useState } from 'react';
 import { FaRegUser, FaBars, FaTimes } from 'react-icons/fa';
 import { IoCartOutline } from 'react-icons/io5';
+import { useCart } from '../../context/CartContext.jsx';
+import CartDrawer from '../CartDrawer/CartDrawer.jsx';
 import './Navbar.css';
 
 /** Botones Carrito y Login (misma UI en móvil dentro del menú y en escritorio). */
-function NavbarActions({ className, onActionClick }) {
+function NavbarActions({ className, cartCount, onCartClick, onLoginClick }) {
+  const badge =
+    cartCount > 0 ? (
+      <span className="badge-cart">{cartCount > 99 ? '99+' : cartCount}</span>
+    ) : null;
   return (
     <div className={className}>
-      <button className="button-cart" type="button" aria-label="Carrito" onClick={onActionClick}>
+      <button className="button-cart" type="button" aria-label="Carrito" onClick={onCartClick}>
         <IoCartOutline size={22} aria-hidden />
-        <span className="badge-cart">1</span>
+        {badge}
       </button>
-      <button className="button-login" type="button" onClick={onActionClick}>
+      <button className="button-login" type="button" onClick={onLoginClick}>
         <FaRegUser size={18} aria-hidden />
         <span>Login</span>
       </button>
@@ -25,10 +31,23 @@ function NavbarActions({ className, onActionClick }) {
  */
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const { totalQuantity } = useCart();
 
   const closeMenu = () => setIsMenuOpen(false);
 
+  const openCart = () => {
+    setIsMenuOpen(false);
+    setIsCartOpen(true);
+  };
+
+  const goLogin = () => {
+    closeMenu();
+    window.location.hash = '#contact';
+  };
+
   return (
+    <>
     <header className={`navbar-container ${isMenuOpen ? 'navbar-container--open' : ''}`}>
       <a className="navbar-brand" href="#inicio" onClick={closeMenu}>ProFruit</a>
 
@@ -52,10 +71,22 @@ export default function Navbar() {
           <li><a href="#contact" onClick={closeMenu}>Contacto</a></li>
         </ul>
 
-        <NavbarActions className="navbar-actions navbar-actions--mobile" onActionClick={closeMenu} />
+        <NavbarActions
+          className="navbar-actions navbar-actions--mobile"
+          cartCount={totalQuantity}
+          onCartClick={openCart}
+          onLoginClick={goLogin}
+        />
       </nav>
 
-      <NavbarActions className="navbar-actions navbar-actions--desktop" />
+      <NavbarActions
+        className="navbar-actions navbar-actions--desktop"
+        cartCount={totalQuantity}
+        onCartClick={openCart}
+        onLoginClick={goLogin}
+      />
     </header>
+    <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+    </>
   );
 }

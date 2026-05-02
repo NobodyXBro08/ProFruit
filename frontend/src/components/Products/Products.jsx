@@ -8,6 +8,7 @@ import ChipsBanano from '../../assets/images/ChipsDeBanano.jpg';
 import AnillosManzana from '../../assets/images/AnillosDeManzana.jpg';
 import { formatPrice } from '../../utils/formatPrice';
 import { CatalogProductStars } from '../../utils/stars';
+import { useCart } from '../../context/CartContext.jsx';
 
 const defaultImages = [MangoDeshidratado, PinaDeshidratada, ChipsBanano, AnillosManzana];
 
@@ -29,6 +30,7 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const carouselRef = useRef(null);
+  const { addToCart } = useCart();
 
   /* Carga inicial de productos desde /api/products (Next.js en puerto 3000 con proxy CRA). */
   useEffect(() => {
@@ -156,7 +158,11 @@ export default function Products() {
                       No disponible
                     </button>
                   ) : (
-                    <button className="product-btn">
+                    <button
+                      type="button"
+                      className="product-btn"
+                      onClick={() => addToCart(product)}
+                    >
                       <FaShoppingCart />
                       <span>Agregar al carrito</span>
                     </button>

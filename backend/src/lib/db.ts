@@ -1,4 +1,4 @@
-import mysql from "mysql2/promise";
+import mysql, { type PoolConnection } from "mysql2/promise";
 
 /** Pool de conexiones MySQL reutilizado por productos, usuarios y autenticación. */
 export const pool = mysql.createPool({
@@ -16,5 +16,23 @@ export const pool = mysql.createPool({
 export async function query<T = any>(sql: string, params: unknown[] = []): Promise<T[]> {
   const [rows] = await pool.query(sql, params);
   return rows as T[];
+}
+
+/**
+ * Ejecuta un bloque dentro de una transacción (commit al terminar bien, rollback si falla).
+ */
+export async function withTransaction<T>(fn: (conn: PoolConnection) => Promise<T>): Promise<T> {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const result = await fn(conn);
+    await conn.commit();
+    return result;
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
 }
 

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { CartProvider } from './context/CartContext.jsx';
 import Navbar from './components/NavBar/Navbar.jsx';
 import About from './components/About/About.jsx';
 import Products from './components/Products/Products.jsx';
@@ -17,15 +18,17 @@ export default function App() {
   }, []);
 
   return (
-    <div className="app-root">
-      <Navbar />
-      <main id="inicio" className="app-main" tabIndex={-1}>
-        <About />
-        <Products />
-        <Opinions />
-        <JobWithUs />
-      </main>
-      <Footer />
-    </div>
+    <CartProvider>
+      <div className="app-root">
+        <Navbar />
+        <main id="inicio" className="app-main" tabIndex={-1}>
+          <About />
+          <Products />
+          <Opinions />
+          <JobWithUs />
+        </main>
+        <Footer />
+      </div>
+    </CartProvider>
   );
 }
