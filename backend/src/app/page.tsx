@@ -1,3 +1,3 @@
 export default function HomePage() {
-  return <div>API ProFruit funcionando 🚀</div>;
+  return <div>API funcionando en Railway 🚀</div>;
 }

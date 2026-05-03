@@ -1,4 +1,3 @@
-import { handleLoginPost } from "@/lib/authRouteHandlers";
-
-/** POST login; `/login` reescribe aquí (next.config). */
-export const POST = handleLoginPost;
+export async function POST() {
+  return Response.json({ test: "ok sin DB" });
+}
