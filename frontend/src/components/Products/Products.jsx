@@ -10,7 +10,7 @@ import { formatPrice } from '../../utils/formatPrice';
 import { CatalogProductStars } from '../../utils/stars';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
-import { apiUrl } from '../../config/api.js';
+import { api } from '../../config/api';
 
 const defaultImages = [MangoDeshidratado, PinaDeshidratada, ChipsBanano, AnillosManzana];
 
@@ -37,7 +37,7 @@ export default function Products() {
 
   /* Carga inicial de productos desde /api/products (Next.js en puerto 3000 con proxy CRA). */
   useEffect(() => {
-    fetch(apiUrl('/api/products'))
+    fetch(api('/api/products'))
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {

@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { apiUrl } from '../config/api.js';
+import { api } from '../config/api';
 
 const AuthContext = createContext(null);
 
@@ -39,7 +39,7 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   const login = useCallback(async (username, password) => {
-    const res = await fetch(apiUrl('/api/login'), {
+    const res = await fetch(api('/api/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
@@ -64,7 +64,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const register = useCallback(async (payload) => {
-    const res = await fetch(apiUrl('/api/register'), {
+    const res = await fetch(api('/api/register'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

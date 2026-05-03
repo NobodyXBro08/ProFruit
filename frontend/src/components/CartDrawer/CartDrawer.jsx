@@ -3,7 +3,7 @@ import { FaTimes, FaMinus, FaPlus, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import { formatPrice } from '../../utils/formatPrice';
-import { apiUrl } from '../../config/api.js';
+import { api } from '../../config/api';
 import './CartDrawer.css';
 
 export default function CartDrawer({ isOpen, onClose }) {
@@ -72,7 +72,7 @@ export default function CartDrawer({ isOpen, onClose }) {
 
     setSubmitting(true);
     try {
-      const res = await fetch(apiUrl('/api/orders'), {
+      const res = await fetch(api('/api/orders'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
