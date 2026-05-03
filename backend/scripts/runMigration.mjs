@@ -1,6 +1,9 @@
-const mysql = require("mysql2/promise");
-const fs = require("fs");
-const path = require("path");
+import mysql from "mysql2/promise";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function loadEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -24,26 +27,25 @@ loadEnvFile(path.join(root, ".env.local"));
 loadEnvFile(path.join(root, ".env"));
 loadEnvFile(path.join(root, "..", ".env"));
 
-const host = process.env.MYSQLHOST || process.env.DB_HOST;
-const user = process.env.MYSQLUSER || process.env.DB_USER;
-const password = process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || "";
-const database = process.env.MYSQLDATABASE || process.env.DB_NAME;
-const port = Number(process.env.MYSQLPORT || process.env.DB_PORT || 3306);
+console.log("HOST:", process.env.MYSQLHOST);
+
+if (process.env.MYSQLHOST === undefined || process.env.MYSQLHOST === "") {
+  console.error("Error: MYSQLHOST no está definido. En Railway, enlaza el servicio MySQL o define MYSQLHOST (y el resto MYSQL*) en variables de entorno / .env.");
+  process.exit(1);
+}
+
+if (!process.env.MYSQLUSER || !process.env.MYSQLDATABASE) {
+  console.error("Error: MYSQLUSER y MYSQLDATABASE son obligatorios.");
+  process.exit(1);
+}
 
 const run = async () => {
-  if (!host || !user || !database) {
-    console.error(
-      "Faltan variables de conexión. Define MYSQLHOST, MYSQLUSER, MYSQLDATABASE (Railway) o DB_HOST, DB_USER, DB_NAME (local) en backend/.env o .env.local"
-    );
-    process.exit(1);
-  }
-
   const connection = await mysql.createConnection({
-    host,
-    user,
-    password,
-    database,
-    port,
+    host: process.env.MYSQLHOST,
+    user: process.env.MYSQLUSER,
+    password: process.env.MYSQLPASSWORD ?? "",
+    database: process.env.MYSQLDATABASE,
+    port: Number(process.env.MYSQLPORT || 3306),
     multipleStatements: true,
   });
 

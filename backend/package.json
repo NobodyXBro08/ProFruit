@@ -4,7 +4,7 @@
   "scripts": {
     "build": "next build",
     "start": "next start",
-    "migrate": "node scripts/runMigration.js"
+    "migrate": "node scripts/runMigration.mjs"
   },
   "dependencies": {
     "mysql2": "^3.11.4",
