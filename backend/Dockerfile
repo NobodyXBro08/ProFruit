@@ -1,6 +1,6 @@
-# ---------- BUILD ----------
-
 FROM node:18-alpine AS builder
+
+RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
@@ -11,9 +11,9 @@ COPY . .
 
 RUN npm run build
 
-# ---------- RUN ----------
+FROM node:18-alpine
 
-FROM node:18-alpine AS runner
+RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
@@ -21,8 +21,6 @@ ENV NODE_ENV=production
 
 COPY --from=builder /app ./
 
-ENV PORT=3000
-
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx next start -p $PORT -H 0.0.0.0"]
+CMD ["sh", "-c", "node_modules/.bin/next start -p ${PORT:-3000} -H 0.0.0.0"]
