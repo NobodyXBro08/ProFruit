@@ -10,6 +10,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
+      PORT: "3000"
       DB_HOST: ${DB_HOST:-mysql}
       DB_PORT: ${DB_PORT:-3306}
       DB_USER: ${DB_USER:-root}

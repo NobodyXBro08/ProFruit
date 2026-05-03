@@ -1,3 +1,3 @@
 export default function HomePage() {
-  return <div>API funcionando en Railway 🚀</div>;
+  return <div>Backend funcionando en Railway 🚀</div>;
 }
