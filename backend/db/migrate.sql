@@ -1,18 +1,8 @@
--- ProFruit: recrea esquema + datos (evita tablas previas con tipos incompatibles).
--- La conexión ya usa MYSQLDATABASE.
+-- ProFruit: idempotente (IF NOT EXISTS + INSERT IGNORE). Sin DROP.
 
 SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
 
-DROP TABLE IF EXISTS payments;
-DROP TABLE IF EXISTS order_items;
-DROP TABLE IF EXISTS orders;
-DROP TABLE IF EXISTS products;
-DROP TABLE IF EXISTS users;
-
-SET FOREIGN_KEY_CHECKS = 1;
-
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   username VARCHAR(191) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
@@ -25,7 +15,7 @@ CREATE TABLE users (
   UNIQUE KEY uk_users_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
@@ -37,7 +27,7 @@ CREATE TABLE products (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id INT UNSIGNED NULL,
   status VARCHAR(32) NOT NULL DEFAULT 'pending',
@@ -58,7 +48,7 @@ CREATE TABLE orders (
     ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE order_items (
+CREATE TABLE IF NOT EXISTS order_items (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   order_id INT UNSIGNED NOT NULL,
   product_id INT UNSIGNED NOT NULL,
@@ -75,7 +65,7 @@ CREATE TABLE order_items (
     ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   order_id INT UNSIGNED NOT NULL,
   provider VARCHAR(64) NOT NULL,
@@ -94,7 +84,7 @@ CREATE TABLE payments (
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO products (id, name, description, price, stock, stock_reserved, weight) VALUES
+INSERT IGNORE INTO products (id, name, description, price, stock, stock_reserved, weight) VALUES
 (1, 'Mango deshidratado', 'Rodajas de mango natural, sin azúcar añadida.', 18900.00, 40, 0, '250 g'),
 (2, 'Piña en anillos', 'Anillos de piña Golden, textura suave y dulzor natural.', 17500.00, 32, 0, '200 g'),
 (3, 'Chips de banano', 'Crujientes chips de banano, snack saludable.', 15200.00, 0, 0, '150 g'),
