@@ -6,11 +6,15 @@ import { validateProductCreate, validateProductUpdate } from "@/lib/productValid
 
 export async function GET() {
   try {
+    console.log("CONSULTANDO PRODUCTS...");
     const [rows] = await pool.query("SELECT * FROM products");
+    console.log("RESULTADO products count:", Array.isArray(rows) ? rows.length : "?");
+    console.log("RESULTADO sample:", Array.isArray(rows) && rows[0] ? rows[0] : rows);
     return Response.json(rows);
   } catch (error) {
-    console.error("DB ERROR:", error);
-    return Response.json({ error: "Error en base de datos" }, { status: 500 });
+    console.error("ERROR EN PRODUCTS:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    return Response.json({ error: message }, { status: 500 });
   }
 }
 

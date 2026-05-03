@@ -3,7 +3,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import mysql, { type PoolConnection } from "mysql2/promise";
 
-console.log("MYSQL HOST:", process.env.MYSQLHOST);
+console.log("MYSQLHOST:", process.env.MYSQLHOST);
+console.log("MYSQLDATABASE:", process.env.MYSQLDATABASE);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const sqlPath = path.resolve(__dirname, "../../db/migrate.sql");
@@ -21,13 +22,15 @@ export const pool = mysql.createPool({
 
 async function ensureTables() {
   if (!process.env.MYSQLHOST || !process.env.MYSQLDATABASE) {
+    console.log("ensureTables omitido: falta MYSQLHOST o MYSQLDATABASE");
     return;
   }
   if (process.env.SKIP_DB_AUTO_MIGRATE === "1") {
+    console.log("ensureTables omitido: SKIP_DB_AUTO_MIGRATE=1");
     return;
   }
   try {
-    console.log("Creando tablas si no existen...");
+    console.log("INICIANDO CREACIÓN DE TABLAS (migrate.sql)...");
 
     if (!fs.existsSync(sqlPath)) {
       console.error("No existe migrate.sql en:", sqlPath);
@@ -35,12 +38,21 @@ async function ensureTables() {
     }
 
     const sql = fs.readFileSync(sqlPath, "utf8");
-
     await pool.query(sql);
 
-    console.log("Tablas creadas y datos insertados correctamente");
+    console.log("TABLA PRODUCTS OK (migrate.sql aplicado: users, products, orders, order_items, payments + seed)");
+
+    try {
+      await pool.query(
+        `INSERT INTO products (name, description, price, stock, stock_reserved, weight, image) VALUES
+         ('Producto prueba', 'Fila de depuración', 1000, 1, 0, '100 g', 'https://via.placeholder.com/150')`
+      );
+      console.log("INSERT prueba OK (fila extra; si falla por duplicado lógico, revisar error arriba)");
+    } catch (insertErr) {
+      console.error("INSERT prueba (debug):", insertErr);
+    }
   } catch (error) {
-    console.error("Error creando tablas:", error);
+    console.error("ERROR EN ensureTables:", error);
   }
 }
 
