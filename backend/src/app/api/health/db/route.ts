@@ -6,7 +6,8 @@ export async function GET() {
   try {
     await pool.query("SELECT 1");
     return Response.json({ ok: true, db: "connected" });
-  } catch {
+  } catch (error) {
+    console.error("DB error:", error);
     return Response.json({ ok: false, db: "error" }, { status: 500 });
   }
 }

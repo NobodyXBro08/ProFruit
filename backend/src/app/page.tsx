@@ -1,3 +1,3 @@
 export default function HomePage() {
-  return <div>ProFruit API funcionando 🚀</div>;
+  return <div>API ProFruit funcionando 🚀</div>;
 }

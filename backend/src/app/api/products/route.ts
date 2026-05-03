@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { createProduct, deleteProduct, getProductById, listProducts, updateProduct } from "@/lib/products";
+import { pool } from "@/lib/db";
+import { createProduct, deleteProduct, getProductById, updateProduct } from "@/lib/products";
 import { readJsonBody, parseQueryId } from "@/lib/http";
 import { validateProductCreate, validateProductUpdate } from "@/lib/productValidators";
 
-/** GET lista o `?id=` | POST crear | PUT actualizar | DELETE `?id=` */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
@@ -21,12 +21,11 @@ export async function GET(request: Request) {
       return NextResponse.json(product, { status: 200 });
     }
 
-    const products = await listProducts();
-    return NextResponse.json(products, { status: 200 });
+    const [rows] = await pool.query("SELECT * FROM products LIMIT 10");
+    return Response.json(rows);
   } catch (error) {
-    console.error(error);
-    const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: "Error al obtener productos.", details: message }, { status: 500 });
+    console.error("Error en /api/products:", error);
+    return Response.json({ error: "Error en base de datos" }, { status: 500 });
   }
 }
 
