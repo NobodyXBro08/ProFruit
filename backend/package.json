@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "migrate": "node scripts/runMigration.js"
   },
   "dependencies": {
     "mysql2": "^3.11.4",
