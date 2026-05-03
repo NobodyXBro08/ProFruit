@@ -1,6 +1,13 @@
+import { pool } from "@/lib/db";
+
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  // await pool.query("SELECT 1");
-  return Response.json({ test: "ok sin DB" });
+  try {
+    await pool.query("SELECT 1");
+    return Response.json({ ok: true, db: "connected" });
+  } catch (error) {
+    console.error("DB error:", error);
+    return Response.json({ ok: false, db: "error" }, { status: 500 });
+  }
 }

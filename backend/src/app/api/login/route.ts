@@ -1,3 +1,3 @@
-export async function POST() {
-  return Response.json({ test: "ok sin DB" });
-}
+import { handleLoginPost } from "@/lib/authRouteHandlers";
+
+export const POST = handleLoginPost;
