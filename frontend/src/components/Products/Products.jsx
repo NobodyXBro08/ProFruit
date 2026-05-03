@@ -35,7 +35,7 @@ export default function Products() {
   const { user } = useAuth();
   const { addToCart } = useCart();
 
-  /* Carga inicial de productos desde /api/products (Next.js en puerto 3000 con proxy CRA). */
+  /* Carga inicial desde Railway (REACT_APP_API_URL). */
   useEffect(() => {
     fetch(api('/api/products'))
       .then(async (res) => {
