@@ -1,8 +1,12 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import mysql, { type PoolConnection } from "mysql2/promise";
 
 console.log("MYSQL HOST:", process.env.MYSQLHOST);
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const sqlPath = path.resolve(__dirname, "../../db/migrate.sql");
 
 export const pool = mysql.createPool({
   host: process.env.MYSQLHOST,
@@ -23,10 +27,8 @@ async function runMigration() {
     return;
   }
   try {
-    const sqlPath = path.join(process.cwd(), "db", "migrate.sql");
-
     if (!fs.existsSync(sqlPath)) {
-      console.warn("No se encontró migrate.sql en", sqlPath);
+      console.error("No existe migrate.sql en:", sqlPath);
       return;
     }
 
@@ -34,9 +36,9 @@ async function runMigration() {
 
     await pool.query(sql);
 
-    console.log("Migración ejecutada automáticamente");
+    console.log("Migración ejecutada correctamente");
   } catch (error) {
-    console.error("Error en migración automática:", error);
+    console.error("Error en migración:", error);
   }
 }
 
