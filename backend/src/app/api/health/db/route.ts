@@ -4,10 +4,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await pool.query("SELECT 1");
-    return Response.json({ ok: true, db: "connected" });
+    const [rows] = await pool.query("SELECT 1 as test");
+    return Response.json({ ok: true, db: rows });
   } catch (error) {
-    console.error("DB error:", error);
-    return Response.json({ ok: false, db: "error" }, { status: 500 });
+    console.error("DB ERROR:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    return Response.json({ ok: false, error: message }, { status: 500 });
   }
 }

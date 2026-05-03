@@ -19,7 +19,7 @@ export const pool = mysql.createPool({
   multipleStatements: true,
 });
 
-async function runMigration() {
+async function ensureTables() {
   if (!process.env.MYSQLHOST || !process.env.MYSQLDATABASE) {
     return;
   }
@@ -27,6 +27,8 @@ async function runMigration() {
     return;
   }
   try {
+    console.log("Creando tablas si no existen...");
+
     if (!fs.existsSync(sqlPath)) {
       console.error("No existe migrate.sql en:", sqlPath);
       return;
@@ -36,13 +38,13 @@ async function runMigration() {
 
     await pool.query(sql);
 
-    console.log("Migración ejecutada correctamente");
+    console.log("Tablas creadas y datos insertados correctamente");
   } catch (error) {
-    console.error("Error en migración:", error);
+    console.error("Error creando tablas:", error);
   }
 }
 
-void runMigration();
+void ensureTables();
 
 export async function query<T = unknown>(sql: string, params: unknown[] = []): Promise<T[]> {
   try {
