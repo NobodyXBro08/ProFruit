@@ -10,7 +10,7 @@ import { formatPrice } from '../../utils/formatPrice';
 import { CatalogProductStars } from '../../utils/stars';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
-import { api } from '../../config/api';
+import { API_URL } from '../../config/api';
 
 const defaultImages = [MangoDeshidratado, PinaDeshidratada, ChipsBanano, AnillosManzana];
 
@@ -24,10 +24,11 @@ function ProductsSectionHeader({ subtitle, subtitleClassName = 'products-subtitl
 }
 
 /**
- * Catálogo de productos: consume la API del backend (proxy en desarrollo) y muestra carrusel horizontal.
- * Estados: carga, error o lista renderizada con precio y peso.
+ * Catálogo de productos: URL absoluta vía REACT_APP_API_URL (o API_URL por defecto en config).
  */
 export default function Products() {
+  const API = process.env.REACT_APP_API_URL;
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -35,37 +36,40 @@ export default function Products() {
   const { user } = useAuth();
   const { addToCart } = useCart();
 
-  /* Origen: REACT_APP_API_URL, proxy local (dev), nginx /api (Docker) o Railway por defecto en build estático. */
   useEffect(() => {
     let cancelled = false;
 
-    async function fetchProducts() {
+    async function loadProducts() {
+      const base =
+        typeof API === 'string' && API.trim() !== '' ? API.trim().replace(/\/$/, '') : API_URL;
+
       try {
-        const url = api('/api/products');
-        const res = await fetch(url);
-        const data = await res.json().catch(() => ({}));
+        const res = await fetch(`${base}/api/products`);
+        const data = await res.json();
+        console.log('API DATA:', data);
         if (!res.ok) {
-          const msg = data.error || data.message || 'Error al cargar productos';
-          throw new Error(msg);
+          const msg = (data && (data.error || data.message)) || 'Error al cargar productos';
+          throw new Error(typeof msg === 'string' ? msg : 'Error al cargar productos');
         }
         if (cancelled) return;
         setProducts(Array.isArray(data) ? data : []);
         setError(null);
       } catch (err) {
-        if (cancelled) return;
-        console.error('Error al cargar productos:', err);
-        setError(err instanceof Error ? err.message : String(err));
-        setProducts([]);
+        console.error('ERROR FETCH:', err);
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : String(err));
+          setProducts([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
 
-    fetchProducts();
+    loadProducts();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [API]);
 
   const getProductImage = (product, index) => {
     if (product.image && (product.image.startsWith('http') || product.image.startsWith('data:'))) {
@@ -99,7 +103,7 @@ export default function Products() {
     return (
       <section className="products" id="products">
         <ProductsSectionHeader
-          subtitle={`${error}. Comprueba el API (p. ej. https://profruit-production.up.railway.app/api/products) y, si despliegas el front aparte, define REACT_APP_API_URL en el build.`}
+          subtitle={`${error}. Define REACT_APP_API_URL en el build (URL absoluta del API, sin barra final).`}
           subtitleClassName="products-subtitle products-subtitle--error"
         />
       </section>
