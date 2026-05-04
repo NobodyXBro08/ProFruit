@@ -1,23 +1,42 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import mysql, { type PoolConnection } from "mysql2/promise";
-
-console.log("MYSQLHOST:", process.env.MYSQLHOST);
-console.log("MYSQLDATABASE:", process.env.MYSQLDATABASE);
+import mysql, { type PoolConnection, type Pool } from "mysql2/promise";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const sqlPath = path.resolve(__dirname, "../../db/migrate.sql");
 
-export const pool = mysql.createPool({
-  host: process.env.MYSQLHOST,
-  port: Number(process.env.MYSQLPORT || 3306),
-  user: process.env.MYSQLUSER,
-  password: process.env.MYSQLPASSWORD ?? "",
-  database: process.env.MYSQLDATABASE,
-  waitForConnections: true,
-  connectionLimit: 10,
-  multipleStatements: true,
+let poolInstance: Pool | undefined;
+
+function getPool(): Pool {
+  console.log("MYSQLHOST:", process.env.MYSQLHOST);
+  if (!process.env.MYSQLHOST) {
+    throw new Error("MYSQLHOST no está definido");
+  }
+  if (!poolInstance) {
+    poolInstance = mysql.createPool({
+      host: process.env.MYSQLHOST,
+      port: Number(process.env.MYSQLPORT),
+      user: process.env.MYSQLUSER,
+      password: process.env.MYSQLPASSWORD,
+      database: process.env.MYSQLDATABASE,
+      waitForConnections: true,
+      connectionLimit: 10,
+      multipleStatements: true,
+    });
+  }
+  return poolInstance;
+}
+
+export const pool = new Proxy({} as Pool, {
+  get(_target, prop) {
+    const p = getPool();
+    const v = (p as unknown as Record<string | symbol, unknown>)[prop as string];
+    if (typeof v === "function") {
+      return (v as (...args: unknown[]) => unknown).bind(p);
+    }
+    return v;
+  },
 });
 
 async function ensureTables() {
@@ -40,17 +59,7 @@ async function ensureTables() {
     const sql = fs.readFileSync(sqlPath, "utf8");
     await pool.query(sql);
 
-    console.log("TABLA PRODUCTS OK (migrate.sql aplicado: users, products, orders, order_items, payments + seed)");
-
-    try {
-      await pool.query(
-        `INSERT INTO products (name, description, price, stock, stock_reserved, weight, image) VALUES
-         ('Producto prueba', 'Fila de depuración', 1000, 1, 0, '100 g', 'https://via.placeholder.com/150')`
-      );
-      console.log("INSERT prueba OK (fila extra; si falla por duplicado lógico, revisar error arriba)");
-    } catch (insertErr) {
-      console.error("INSERT prueba (debug):", insertErr);
-    }
+    console.log("migrate.sql ejecutado correctamente");
   } catch (error) {
     console.error("ERROR EN ensureTables:", error);
   }
