@@ -1,3 +1,4 @@
+import type { PoolConnection } from "mysql2/promise";
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { createProduct, deleteProduct, getProductById, updateProduct } from "@/lib/products";
@@ -5,16 +6,28 @@ import { readJsonBody, parseQueryId } from "@/lib/http";
 import { validateProductCreate, validateProductUpdate } from "@/lib/productValidators";
 
 export async function GET() {
+  let connection: PoolConnection | undefined;
+
   try {
-    console.log("CONSULTANDO PRODUCTS...");
-    const [rows] = await pool.query("SELECT * FROM products");
-    console.log("RESULTADO products count:", Array.isArray(rows) ? rows.length : "?");
-    console.log("RESULTADO sample:", Array.isArray(rows) && rows[0] ? rows[0] : rows);
+    console.log("Getting DB connection...");
+    connection = await pool.getConnection();
+
+    console.log("Executing query...");
+    const [rows] = await connection.query(
+      "SELECT id, name, description, price, stock, COALESCE(stock_reserved, 0) AS stock_reserved, weight, image FROM products"
+    );
+
+    console.log("Query OK");
     return Response.json(rows);
   } catch (error) {
-    console.error("ERROR EN PRODUCTS:", error);
+    console.error("ERROR PRODUCTS:", error);
     const message = error instanceof Error ? error.message : String(error);
     return Response.json({ error: message }, { status: 500 });
+  } finally {
+    if (connection) {
+      connection.release();
+      console.log("Connection released");
+    }
   }
 }
 
