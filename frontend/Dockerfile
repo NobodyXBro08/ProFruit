@@ -4,6 +4,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY public ./public
 COPY src ./src
+# Cadena vacía: el bundle usa rutas relativas /api/… y nginx (nginx.docker.conf) proxea al backend.
+ENV REACT_APP_API_URL=
 RUN npm run build
 
 FROM nginx:alpine

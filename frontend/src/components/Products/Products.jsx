@@ -35,26 +35,36 @@ export default function Products() {
   const { user } = useAuth();
   const { addToCart } = useCart();
 
-  /* Carga inicial desde Railway (REACT_APP_API_URL). */
+  /* Origen: REACT_APP_API_URL, proxy local (dev), nginx /api (Docker) o Railway por defecto en build estático. */
   useEffect(() => {
-    fetch(api('/api/products'))
-      .then(async (res) => {
+    let cancelled = false;
+
+    async function fetchProducts() {
+      try {
+        const url = api('/api/products');
+        const res = await fetch(url);
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           const msg = data.error || data.message || 'Error al cargar productos';
           throw new Error(msg);
         }
-        return data;
-      })
-      .then((data) => {
+        if (cancelled) return;
         setProducts(Array.isArray(data) ? data : []);
         setError(null);
-      })
-      .catch((err) => {
-        setError(err.message);
+      } catch (err) {
+        if (cancelled) return;
+        console.error('Error al cargar productos:', err);
+        setError(err instanceof Error ? err.message : String(err));
         setProducts([]);
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchProducts();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const getProductImage = (product, index) => {
@@ -89,7 +99,7 @@ export default function Products() {
     return (
       <section className="products" id="products">
         <ProductsSectionHeader
-          subtitle={`${error}. Comprueba que el API esté desplegado y que REACT_APP_API_URL (Netlify) coincida con la URL de Railway.`}
+          subtitle={`${error}. Comprueba el API (p. ej. https://profruit-production.up.railway.app/api/products) y, si despliegas el front aparte, define REACT_APP_API_URL en el build.`}
           subtitleClassName="products-subtitle products-subtitle--error"
         />
       </section>
