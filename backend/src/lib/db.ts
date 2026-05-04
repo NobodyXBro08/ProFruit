@@ -1,36 +1,10 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import mysql, { type PoolConnection, type Pool, type PoolOptions } from "mysql2/promise";
+import mysql, { type PoolConnection, type Pool } from "mysql2/promise";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const sqlPath = path.resolve(__dirname, "../../db/migrate.sql");
-
-console.log("Conectando con DATABASE_URL");
-
-function poolOptionsFromDatabaseUrl(databaseUrl: string): PoolOptions {
-  const u = new URL(databaseUrl);
-  if (u.protocol !== "mysql:" && u.protocol !== "mariadb:") {
-    throw new Error("DATABASE_URL debe usar protocolo mysql:// o mariadb://");
-  }
-  const database = u.pathname.replace(/^\//, "") || undefined;
-  const port = u.port ? parseInt(u.port, 10) : 3306;
-  const user = decodeURIComponent(u.username || "");
-  const password = u.password ? decodeURIComponent(u.password) : "";
-  if (!u.hostname) {
-    throw new Error("DATABASE_URL sin hostname");
-  }
-  return {
-    host: u.hostname,
-    port,
-    user,
-    password,
-    database,
-    waitForConnections: true,
-    connectionLimit: 10,
-    multipleStatements: true,
-  };
-}
 
 let poolInstance: Pool | undefined;
 
@@ -38,8 +12,9 @@ function getPool(): Pool {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL no está definido");
   }
+  console.log("DATABASE_URL:", process.env.DATABASE_URL);
   if (!poolInstance) {
-    poolInstance = mysql.createPool(poolOptionsFromDatabaseUrl(process.env.DATABASE_URL));
+    poolInstance = mysql.createPool(process.env.DATABASE_URL);
   }
   return poolInstance;
 }
@@ -55,6 +30,22 @@ export const pool = new Proxy({} as Pool, {
   },
 });
 
+/** migrate.sql: varias sentencias sin multipleStatements en pool por URL. */
+async function runMigrateSqlStatements() {
+  const raw = fs.readFileSync(sqlPath, "utf8");
+  const sql = raw
+    .split("\n")
+    .filter((line) => !/^\s*--/.test(line))
+    .join("\n");
+  const chunks = sql
+    .split(/;\s*\r?\n/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  for (const chunk of chunks) {
+    await pool.query(`${chunk};`);
+  }
+}
+
 async function ensureTables() {
   if (!process.env.DATABASE_URL) {
     console.log("ensureTables omitido: falta DATABASE_URL");
@@ -65,16 +56,11 @@ async function ensureTables() {
     return;
   }
   try {
-    console.log("INICIANDO CREACIÓN DE TABLAS (migrate.sql)...");
-
     if (!fs.existsSync(sqlPath)) {
       console.error("No existe migrate.sql en:", sqlPath);
       return;
     }
-
-    const sql = fs.readFileSync(sqlPath, "utf8");
-    await pool.query(sql);
-
+    await runMigrateSqlStatements();
     console.log("migrate.sql ejecutado correctamente");
   } catch (error) {
     console.error("ERROR EN ensureTables:", error);
