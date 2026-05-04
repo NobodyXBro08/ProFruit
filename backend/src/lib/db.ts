@@ -1,34 +1,32 @@
 import mysql, { type PoolConnection, type Pool } from "mysql2/promise";
-import { URL } from "url";
 
 let poolInstance: Pool | undefined;
 
-function getPool(): Pool {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL no está definido");
+function createPoolFromMysqlEnv(): Pool {
+  const host = process.env.MYSQLHOST;
+  const user = process.env.MYSQLUSER;
+  const database = process.env.MYSQLDATABASE;
+  if (!host || !user || !database) {
+    throw new Error(
+      "MYSQLHOST, MYSQLUSER y MYSQLDATABASE son obligatorios (red interna Railway / Docker)."
+    );
   }
+
+  return mysql.createPool({
+    host,
+    port: Number(process.env.MYSQLPORT || 3306),
+    user,
+    password: process.env.MYSQLPASSWORD ?? "",
+    database,
+    waitForConnections: true,
+    connectionLimit: 10,
+  });
+}
+
+function getPool(): Pool {
   if (!poolInstance) {
-    const dbUrl = new URL(process.env.DATABASE_URL);
-    const port = dbUrl.port ? Number(dbUrl.port) : 3306;
-    const database = dbUrl.pathname.replace(/^\//, "") || undefined;
-    const user = decodeURIComponent(dbUrl.username || "");
-    const password = dbUrl.password ? decodeURIComponent(dbUrl.password) : "";
-
-    poolInstance = mysql.createPool({
-      host: dbUrl.hostname,
-      port,
-      user,
-      password,
-      database,
-      waitForConnections: true,
-      connectionLimit: 3,
-      queueLimit: 0,
-      connectTimeout: 10_000,
-      enableKeepAlive: true,
-      keepAliveInitialDelay: 0,
-    });
-
-    console.log("Conectado a MySQL correctamente");
+    poolInstance = createPoolFromMysqlEnv();
+    console.log("MySQL conectado usando red interna Railway");
   }
   return poolInstance;
 }
