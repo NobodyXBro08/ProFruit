@@ -10,7 +10,6 @@ import { formatPrice } from '../../utils/formatPrice';
 import { CatalogProductStars } from '../../utils/stars';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
-import { API_URL } from '../../config/api';
 
 const defaultImages = [MangoDeshidratado, PinaDeshidratada, ChipsBanano, AnillosManzana];
 
@@ -24,7 +23,7 @@ function ProductsSectionHeader({ subtitle, subtitleClassName = 'products-subtitl
 }
 
 /**
- * Catálogo de productos: URL absoluta vía REACT_APP_API_URL (o API_URL por defecto en config).
+ * Catálogo: solo URL absoluta desde REACT_APP_API_URL (incrustada en build por CRA).
  */
 export default function Products() {
   const API = process.env.REACT_APP_API_URL;
@@ -37,13 +36,12 @@ export default function Products() {
   const { addToCart } = useCart();
 
   useEffect(() => {
-    let cancelled = false;
-
     async function loadProducts() {
-      const base =
-        typeof API === 'string' && API.trim() !== '' ? API.trim().replace(/\/$/, '') : API_URL;
-
       try {
+        if (!API) {
+          throw new Error('REACT_APP_API_URL no está definido');
+        }
+        const base = String(API).trim().replace(/\/$/, '');
         const res = await fetch(`${base}/api/products`);
         const data = await res.json();
         console.log('API DATA:', data);
@@ -51,24 +49,18 @@ export default function Products() {
           const msg = (data && (data.error || data.message)) || 'Error al cargar productos';
           throw new Error(typeof msg === 'string' ? msg : 'Error al cargar productos');
         }
-        if (cancelled) return;
         setProducts(Array.isArray(data) ? data : []);
         setError(null);
       } catch (err) {
-        console.error('ERROR FETCH:', err);
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : String(err));
-          setProducts([]);
-        }
+        console.error('FETCH ERROR:', err);
+        setError(err instanceof Error ? err.message : String(err));
+        setProducts([]);
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     }
 
     loadProducts();
-    return () => {
-      cancelled = true;
-    };
   }, [API]);
 
   const getProductImage = (product, index) => {
@@ -103,7 +95,7 @@ export default function Products() {
     return (
       <section className="products" id="products">
         <ProductsSectionHeader
-          subtitle={`${error}. Define REACT_APP_API_URL en el build (URL absoluta del API, sin barra final).`}
+          subtitle={error}
           subtitleClassName="products-subtitle products-subtitle--error"
         />
       </section>
