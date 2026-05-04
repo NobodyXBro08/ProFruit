@@ -27,27 +27,31 @@ loadEnvFile(path.join(root, ".env.local"));
 loadEnvFile(path.join(root, ".env"));
 loadEnvFile(path.join(root, "..", ".env"));
 
-console.log("HOST:", process.env.MYSQLHOST);
-
-if (process.env.MYSQLHOST === undefined || process.env.MYSQLHOST === "") {
-  console.error("Error: MYSQLHOST no está definido. En Railway, enlaza el servicio MySQL o define MYSQLHOST (y el resto MYSQL*) en variables de entorno / .env.");
-  process.exit(1);
-}
-
-if (!process.env.MYSQLUSER || !process.env.MYSQLDATABASE) {
-  console.error("Error: MYSQLUSER y MYSQLDATABASE son obligatorios.");
-  process.exit(1);
-}
-
 const run = async () => {
-  const connection = await mysql.createConnection({
-    host: process.env.MYSQLHOST,
-    user: process.env.MYSQLUSER,
-    password: process.env.MYSQLPASSWORD ?? "",
-    database: process.env.MYSQLDATABASE,
-    port: Number(process.env.MYSQLPORT || 3306),
-    multipleStatements: true,
-  });
+  let connection;
+
+  if (process.env.DATABASE_URL) {
+    console.log("Migración con DATABASE_URL");
+    connection = await mysql.createConnection(process.env.DATABASE_URL);
+  } else {
+    console.log("HOST:", process.env.MYSQLHOST);
+    if (!process.env.MYSQLHOST) {
+      console.error("Define DATABASE_URL o MYSQLHOST (+ MYSQLUSER, MYSQLDATABASE, …).");
+      process.exit(1);
+    }
+    if (!process.env.MYSQLUSER || !process.env.MYSQLDATABASE) {
+      console.error("MYSQLUSER y MYSQLDATABASE son obligatorios sin DATABASE_URL.");
+      process.exit(1);
+    }
+    connection = await mysql.createConnection({
+      host: process.env.MYSQLHOST,
+      user: process.env.MYSQLUSER,
+      password: process.env.MYSQLPASSWORD ?? "",
+      database: process.env.MYSQLDATABASE,
+      port: Number(process.env.MYSQLPORT || 3306),
+      multipleStatements: true,
+    });
+  }
 
   const sqlPath = path.join(root, "db", "migrate.sql");
   const sql = fs.readFileSync(sqlPath, "utf8");

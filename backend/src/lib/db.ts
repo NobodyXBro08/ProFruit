@@ -1,29 +1,45 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import mysql, { type PoolConnection, type Pool } from "mysql2/promise";
+import mysql, { type PoolConnection, type Pool, type PoolOptions } from "mysql2/promise";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const sqlPath = path.resolve(__dirname, "../../db/migrate.sql");
 
+console.log("Conectando con DATABASE_URL");
+
+function poolOptionsFromDatabaseUrl(databaseUrl: string): PoolOptions {
+  const u = new URL(databaseUrl);
+  if (u.protocol !== "mysql:" && u.protocol !== "mariadb:") {
+    throw new Error("DATABASE_URL debe usar protocolo mysql:// o mariadb://");
+  }
+  const database = u.pathname.replace(/^\//, "") || undefined;
+  const port = u.port ? parseInt(u.port, 10) : 3306;
+  const user = decodeURIComponent(u.username || "");
+  const password = u.password ? decodeURIComponent(u.password) : "";
+  if (!u.hostname) {
+    throw new Error("DATABASE_URL sin hostname");
+  }
+  return {
+    host: u.hostname,
+    port,
+    user,
+    password,
+    database,
+    waitForConnections: true,
+    connectionLimit: 10,
+    multipleStatements: true,
+  };
+}
+
 let poolInstance: Pool | undefined;
 
 function getPool(): Pool {
-  console.log("MYSQLHOST:", process.env.MYSQLHOST);
-  if (!process.env.MYSQLHOST) {
-    throw new Error("MYSQLHOST no está definido");
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL no está definido");
   }
   if (!poolInstance) {
-    poolInstance = mysql.createPool({
-      host: process.env.MYSQLHOST,
-      port: Number(process.env.MYSQLPORT),
-      user: process.env.MYSQLUSER,
-      password: process.env.MYSQLPASSWORD,
-      database: process.env.MYSQLDATABASE,
-      waitForConnections: true,
-      connectionLimit: 10,
-      multipleStatements: true,
-    });
+    poolInstance = mysql.createPool(poolOptionsFromDatabaseUrl(process.env.DATABASE_URL));
   }
   return poolInstance;
 }
@@ -40,8 +56,8 @@ export const pool = new Proxy({} as Pool, {
 });
 
 async function ensureTables() {
-  if (!process.env.MYSQLHOST || !process.env.MYSQLDATABASE) {
-    console.log("ensureTables omitido: falta MYSQLHOST o MYSQLDATABASE");
+  if (!process.env.DATABASE_URL) {
+    console.log("ensureTables omitido: falta DATABASE_URL");
     return;
   }
   if (process.env.SKIP_DB_AUTO_MIGRATE === "1") {
