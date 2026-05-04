@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { hashPassword } from "@/lib/auth";
+import { corsHeaders, corsOptionsResponse } from "@/lib/cors";
 import { readJsonBody, parseQueryId } from "@/lib/http";
 import { deleteUser, getUserById, listUsers, updateUser } from "@/lib/users";
 
@@ -29,6 +30,10 @@ function validateUpdateBody(body: unknown): { ok: true; data: { id: number; user
   };
 }
 
+export function OPTIONS() {
+  return corsOptionsResponse();
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
@@ -37,21 +42,24 @@ export async function GET(request: Request) {
     if (id !== null && id !== "") {
       const parsed = parseQueryId(id);
       if (!parsed.ok) {
-        return NextResponse.json({ error: parsed.error }, { status: 400 });
+        return NextResponse.json({ error: parsed.error }, { status: 400, headers: corsHeaders });
       }
       const user = await getUserById(parsed.id);
       if (!user) {
-        return NextResponse.json({ error: "Usuario no encontrado." }, { status: 404 });
+        return NextResponse.json({ error: "Usuario no encontrado." }, { status: 404, headers: corsHeaders });
       }
-      return NextResponse.json(user, { status: 200 });
+      return NextResponse.json(user, { status: 200, headers: corsHeaders });
     }
 
     const users = await listUsers();
-    return NextResponse.json(users, { status: 200 });
+    return NextResponse.json(users, { status: 200, headers: corsHeaders });
   } catch (error) {
     console.error(error);
     const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: "Error al obtener usuarios.", details: message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error al obtener usuarios.", details: message },
+      { status: 500, headers: corsHeaders }
+    );
   }
 }
 
@@ -62,7 +70,7 @@ export async function PUT(request: Request) {
 
     const v = validateUpdateBody(raw.body);
     if (!v.ok) {
-      return NextResponse.json({ error: v.error }, { status: 400 });
+      return NextResponse.json({ error: v.error }, { status: 400, headers: corsHeaders });
     }
 
     const updated = await updateUser({
@@ -72,13 +80,16 @@ export async function PUT(request: Request) {
     });
 
     if (!updated) {
-      return NextResponse.json({ error: "Usuario no encontrado. No se pudo actualizar." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Usuario no encontrado. No se pudo actualizar." },
+        { status: 404, headers: corsHeaders }
+      );
     }
 
-    return NextResponse.json({ message: "Usuario actualizado correctamente." }, { status: 200 });
+    return NextResponse.json({ message: "Usuario actualizado correctamente." }, { status: 200, headers: corsHeaders });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Error al actualizar el usuario." }, { status: 500 });
+    return NextResponse.json({ error: "Error al actualizar el usuario." }, { status: 500, headers: corsHeaders });
   }
 }
 
@@ -88,17 +99,20 @@ export async function DELETE(request: Request) {
     const id = searchParams.get("id");
     const parsed = parseQueryId(id);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json({ error: parsed.error }, { status: 400, headers: corsHeaders });
     }
 
     const deleted = await deleteUser(parsed.id);
     if (!deleted) {
-      return NextResponse.json({ error: "Usuario no encontrado. No se pudo eliminar." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Usuario no encontrado. No se pudo eliminar." },
+        { status: 404, headers: corsHeaders }
+      );
     }
 
-    return NextResponse.json({ message: "Usuario eliminado correctamente." }, { status: 200 });
+    return NextResponse.json({ message: "Usuario eliminado correctamente." }, { status: 200, headers: corsHeaders });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Error al eliminar el usuario." }, { status: 500 });
+    return NextResponse.json({ error: "Error al eliminar el usuario." }, { status: 500, headers: corsHeaders });
   }
 }

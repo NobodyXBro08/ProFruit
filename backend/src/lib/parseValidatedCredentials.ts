@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateCredentials } from "./auth";
+import { corsHeaders } from "./cors";
 import { readJsonBody } from "./http";
 
 export type ParsedCredentials =
@@ -20,7 +21,7 @@ export async function parseValidatedCredentials(request: Request): Promise<Parse
   if (!validation.ok) {
     return {
       ok: false,
-      response: NextResponse.json({ error: validation.message }, { status: 400 }),
+      response: NextResponse.json({ error: validation.message }, { status: 400, headers: corsHeaders }),
     };
   }
 

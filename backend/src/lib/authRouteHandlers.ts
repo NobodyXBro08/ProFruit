@@ -6,6 +6,7 @@ import {
   hashPassword,
   verifyPassword,
 } from "./auth";
+import { corsHeaders } from "./cors";
 import { readJsonBody } from "./http";
 import { parseValidatedCredentials } from "./parseValidatedCredentials";
 import { validateRegisterBody } from "./registerValidators";
@@ -17,19 +18,25 @@ export async function handleRegisterPost(request: Request): Promise<NextResponse
 
     const v = validateRegisterBody(raw.body);
     if (!v.ok) {
-      return NextResponse.json({ error: v.error }, { status: 400 });
+      return NextResponse.json({ error: v.error }, { status: 400, headers: corsHeaders });
     }
 
     const { username, password, fullName, email, phone, shippingAddress } = v.data;
 
     const existingUser = await findUserByUsername(username);
     if (existingUser) {
-      return NextResponse.json({ error: "El nombre de usuario ya está registrado." }, { status: 409 });
+      return NextResponse.json(
+        { error: "El nombre de usuario ya está registrado." },
+        { status: 409, headers: corsHeaders }
+      );
     }
 
     const existingEmail = await findUserByEmail(email);
     if (existingEmail) {
-      return NextResponse.json({ error: "Ya existe una cuenta con ese correo electrónico." }, { status: 409 });
+      return NextResponse.json(
+        { error: "Ya existe una cuenta con ese correo electrónico." },
+        { status: 409, headers: corsHeaders }
+      );
     }
 
     const passwordHash = hashPassword(password);
@@ -45,16 +52,16 @@ export async function handleRegisterPost(request: Request): Promise<NextResponse
       if (code === "ER_DUP_ENTRY") {
         return NextResponse.json(
           { error: "El nombre de usuario o el correo ya está registrado." },
-          { status: 409 }
+          { status: 409, headers: corsHeaders }
         );
       }
       throw e;
     }
 
-    return NextResponse.json({ message: "Usuario registrado correctamente" }, { status: 201 });
+    return NextResponse.json({ message: "Usuario registrado correctamente" }, { status: 201, headers: corsHeaders });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "Error interno del servidor." }, { status: 500 });
+    return NextResponse.json({ error: "Error interno del servidor." }, { status: 500, headers: corsHeaders });
   }
 }
 
@@ -68,7 +75,7 @@ export async function handleLoginPost(request: Request): Promise<NextResponse> {
 
     const row = await findUserByUsername(user);
     if (!row || !verifyPassword(pass, row.password_hash)) {
-      return NextResponse.json({ error: "Error en la autenticación" }, { status: 401 });
+      return NextResponse.json({ error: "Error en la autenticación" }, { status: 401, headers: corsHeaders });
     }
 
     return NextResponse.json(
@@ -83,10 +90,10 @@ export async function handleLoginPost(request: Request): Promise<NextResponse> {
           ...(row.shipping_address && { shippingAddress: row.shipping_address }),
         },
       },
-      { status: 200 }
+      { status: 200, headers: corsHeaders }
     );
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "Error interno del servidor." }, { status: 500 });
+    return NextResponse.json({ error: "Error interno del servidor." }, { status: 500, headers: corsHeaders });
   }
 }

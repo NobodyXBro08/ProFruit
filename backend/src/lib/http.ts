@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { corsHeaders } from "./cors";
 
 export async function readJsonBody(
   request: Request
@@ -6,7 +7,10 @@ export async function readJsonBody(
   try {
     return { ok: true, body: await request.json() };
   } catch {
-    return { ok: false, response: NextResponse.json({ error: "Cuerpo JSON inválido." }, { status: 400 }) };
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Cuerpo JSON inválido." }, { status: 400, headers: corsHeaders }),
+    };
   }
 }
 

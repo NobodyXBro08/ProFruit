@@ -1,26 +1,22 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const origins = (process.env.CORS_ORIGINS || "")
-  .split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
-
-function withCors(req: NextRequest, res: NextResponse) {
-  const origin = req.headers.get("origin") || "";
-  if (origins.includes(origin)) {
-    res.headers.set("Access-Control-Allow-Origin", origin);
-  }
-  res.headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  return res;
-}
+const corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
 
 export function middleware(request: NextRequest) {
   if (request.method === "OPTIONS") {
-    return withCors(request, new NextResponse(null, { status: 204 }));
+    return new NextResponse(null, { status: 204, headers: corsHeaders });
   }
-  return withCors(request, NextResponse.next());
+
+  const res = NextResponse.next();
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    res.headers.set(key, value);
+  }
+  return res;
 }
 
 export const config = {

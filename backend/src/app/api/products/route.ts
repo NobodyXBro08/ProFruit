@@ -1,17 +1,22 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
+import { corsHeaders, corsJson, corsOptionsResponse } from "@/lib/cors";
 import { createProduct, deleteProduct, updateProduct } from "@/lib/products";
 import { readJsonBody, parseQueryId } from "@/lib/http";
 import { validateProductCreate, validateProductUpdate } from "@/lib/productValidators";
 
+export function OPTIONS() {
+  return corsOptionsResponse();
+}
+
 export async function GET() {
   try {
     const [rows] = await pool.query("SELECT * FROM products");
-    return Response.json(rows);
+    return corsJson(rows, 200);
   } catch (error) {
     console.error("ERROR PRODUCTS:", error);
     const message = error instanceof Error ? error.message : String(error);
-    return Response.json({ error: message }, { status: 500 });
+    return corsJson({ error: message }, 500);
   }
 }
 
@@ -22,7 +27,7 @@ export async function POST(request: Request) {
 
     const v = validateProductCreate(raw.body);
     if (!v.ok) {
-      return NextResponse.json({ error: v.error }, { status: 400 });
+      return NextResponse.json({ error: v.error }, { status: 400, headers: corsHeaders });
     }
 
     const product = await createProduct({
@@ -32,10 +37,10 @@ export async function POST(request: Request) {
       stock: v.data.stock,
       weight: v.data.weight,
     });
-    return NextResponse.json(product, { status: 201 });
+    return NextResponse.json(product, { status: 201, headers: corsHeaders });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Error al crear el producto." }, { status: 500 });
+    return NextResponse.json({ error: "Error al crear el producto." }, { status: 500, headers: corsHeaders });
   }
 }
 
@@ -46,7 +51,7 @@ export async function PUT(request: Request) {
 
     const v = validateProductUpdate(raw.body);
     if (!v.ok) {
-      return NextResponse.json({ error: v.error }, { status: 400 });
+      return NextResponse.json({ error: v.error }, { status: 400, headers: corsHeaders });
     }
 
     const updated = await updateProduct({
@@ -59,17 +64,20 @@ export async function PUT(request: Request) {
     });
 
     if (!updated) {
-      return NextResponse.json({ error: "Producto no encontrado. No se pudo actualizar." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Producto no encontrado. No se pudo actualizar." },
+        { status: 404, headers: corsHeaders }
+      );
     }
 
-    return NextResponse.json({ message: "Producto actualizado correctamente." }, { status: 200 });
+    return NextResponse.json({ message: "Producto actualizado correctamente." }, { status: 200, headers: corsHeaders });
   } catch (error) {
     console.error(error);
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.includes("El id es obligatorio")) {
-      return NextResponse.json({ error: msg }, { status: 400 });
+      return NextResponse.json({ error: msg }, { status: 400, headers: corsHeaders });
     }
-    return NextResponse.json({ error: "Error al actualizar el producto." }, { status: 500 });
+    return NextResponse.json({ error: "Error al actualizar el producto." }, { status: 500, headers: corsHeaders });
   }
 }
 
@@ -80,18 +88,21 @@ export async function DELETE(request: Request) {
 
     const parsed = parseQueryId(id);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json({ error: parsed.error }, { status: 400, headers: corsHeaders });
     }
 
     const deleted = await deleteProduct(parsed.id);
 
     if (!deleted) {
-      return NextResponse.json({ error: "Producto no encontrado. No se pudo eliminar." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Producto no encontrado. No se pudo eliminar." },
+        { status: 404, headers: corsHeaders }
+      );
     }
 
-    return NextResponse.json({ message: "Producto eliminado correctamente." }, { status: 200 });
+    return NextResponse.json({ message: "Producto eliminado correctamente." }, { status: 200, headers: corsHeaders });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Error al eliminar el producto." }, { status: 500 });
+    return NextResponse.json({ error: "Error al eliminar el producto." }, { status: 500, headers: corsHeaders });
   }
 }
