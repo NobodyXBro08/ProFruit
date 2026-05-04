@@ -1,14 +1,34 @@
 import mysql, { type PoolConnection, type Pool } from "mysql2/promise";
+import { URL } from "url";
 
 let poolInstance: Pool | undefined;
 
 function getPool(): Pool {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
+  if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL no está definido");
   }
   if (!poolInstance) {
-    poolInstance = mysql.createPool(url);
+    const dbUrl = new URL(process.env.DATABASE_URL);
+    const port = dbUrl.port ? Number(dbUrl.port) : 3306;
+    const database = dbUrl.pathname.replace(/^\//, "") || undefined;
+    const user = decodeURIComponent(dbUrl.username || "");
+    const password = dbUrl.password ? decodeURIComponent(dbUrl.password) : "";
+
+    poolInstance = mysql.createPool({
+      host: dbUrl.hostname,
+      port,
+      user,
+      password,
+      database,
+      waitForConnections: true,
+      connectionLimit: 3,
+      queueLimit: 0,
+      connectTimeout: 10_000,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0,
+    });
+
+    console.log("Conectado a MySQL correctamente");
   }
   return poolInstance;
 }
