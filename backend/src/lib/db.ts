@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import mysql, { type PoolConnection, type Pool } from "mysql2/promise";
+import mysql, { type PoolConnection, type Pool, type PoolOptions } from "mysql2/promise";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const sqlPath = path.resolve(__dirname, "../../db/migrate.sql");
@@ -12,9 +12,19 @@ function getPool(): Pool {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL no está definido");
   }
-  console.log("DATABASE_URL:", process.env.DATABASE_URL);
   if (!poolInstance) {
-    poolInstance = mysql.createPool(process.env.DATABASE_URL);
+    console.log("Conectando a MySQL vía proxy");
+    const opts: PoolOptions = {
+      uri: process.env.DATABASE_URL,
+      waitForConnections: true,
+      connectionLimit: 5,
+      queueLimit: 0,
+      connectTimeout: 10_000,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0,
+      multipleStatements: true,
+    };
+    poolInstance = mysql.createPool(opts);
   }
   return poolInstance;
 }
@@ -30,7 +40,6 @@ export const pool = new Proxy({} as Pool, {
   },
 });
 
-/** migrate.sql: varias sentencias sin multipleStatements en pool por URL. */
 async function runMigrateSqlStatements() {
   const raw = fs.readFileSync(sqlPath, "utf8");
   const sql = raw
