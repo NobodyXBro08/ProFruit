@@ -1,4 +1,3 @@
-/** Cabeceras CORS para API pública (Netlify, etc.). */
 export const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",

@@ -76,7 +76,7 @@ export async function PUT(request: Request) {
     const updated = await updateUser({
       id: v.data.id,
       username: v.data.username,
-      passwordHash: v.data.password ? hashPassword(v.data.password) : undefined,
+      passwordHash: v.data.password ? await hashPassword(v.data.password) : undefined,
     });
 
     if (!updated) {

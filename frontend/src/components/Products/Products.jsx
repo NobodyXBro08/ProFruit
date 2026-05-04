@@ -44,7 +44,6 @@ export default function Products() {
         const base = String(API).trim().replace(/\/$/, '');
         const res = await fetch(`${base}/api/products`);
         const data = await res.json();
-        console.log('API DATA:', data);
         if (!res.ok) {
           const msg = (data && (data.error || data.message)) || 'Error al cargar productos';
           throw new Error(typeof msg === 'string' ? msg : 'Error al cargar productos');
@@ -52,7 +51,7 @@ export default function Products() {
         setProducts(Array.isArray(data) ? data : []);
         setError(null);
       } catch (err) {
-        console.error('FETCH ERROR:', err);
+        console.error('loadProducts:', err);
         setError(err instanceof Error ? err.message : String(err));
         setProducts([]);
       } finally {

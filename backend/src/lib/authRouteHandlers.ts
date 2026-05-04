@@ -21,7 +21,7 @@ export async function handleRegisterPost(request: Request): Promise<NextResponse
       return NextResponse.json({ error: v.error }, { status: 400, headers: corsHeaders });
     }
 
-    const { username, password, fullName, email, phone, shippingAddress } = v.data;
+    const { username, password, email } = v.data;
 
     const existingUser = await findUserByUsername(username);
     if (existingUser) {
@@ -39,15 +39,11 @@ export async function handleRegisterPost(request: Request): Promise<NextResponse
       );
     }
 
-    const passwordHash = hashPassword(password);
+    const passwordHash = await hashPassword(password);
     try {
-      await createUser(username, passwordHash, {
-        fullName,
-        email,
-        phone,
-        shippingAddress,
-      });
+      await createUser(username, passwordHash, email);
     } catch (e) {
+      console.error("createUser:", e);
       const code = (e as { code?: string })?.code;
       if (code === "ER_DUP_ENTRY") {
         return NextResponse.json(
@@ -60,7 +56,7 @@ export async function handleRegisterPost(request: Request): Promise<NextResponse
 
     return NextResponse.json({ message: "Usuario registrado correctamente" }, { status: 201, headers: corsHeaders });
   } catch (e) {
-    console.error(e);
+    console.error("handleRegisterPost:", e);
     return NextResponse.json({ error: "Error interno del servidor." }, { status: 500, headers: corsHeaders });
   }
 }
@@ -74,7 +70,7 @@ export async function handleLoginPost(request: Request): Promise<NextResponse> {
     const pass = parsed.password;
 
     const row = await findUserByUsername(user);
-    if (!row || !verifyPassword(pass, row.password_hash)) {
+    if (!row || !(await verifyPassword(pass, row.password_hash))) {
       return NextResponse.json({ error: "Error en la autenticación" }, { status: 401, headers: corsHeaders });
     }
 
@@ -84,16 +80,13 @@ export async function handleLoginPost(request: Request): Promise<NextResponse> {
         user: {
           id: row.id,
           username: user,
-          ...(row.full_name && { fullName: row.full_name }),
           ...(row.email && { email: row.email }),
-          ...(row.phone && { phone: row.phone }),
-          ...(row.shipping_address && { shippingAddress: row.shipping_address }),
         },
       },
       { status: 200, headers: corsHeaders }
     );
   } catch (e) {
-    console.error(e);
+    console.error("handleLoginPost:", e);
     return NextResponse.json({ error: "Error interno del servidor." }, { status: 500, headers: corsHeaders });
   }
 }

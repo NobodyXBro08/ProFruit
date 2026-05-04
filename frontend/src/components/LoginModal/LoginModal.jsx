@@ -8,10 +8,7 @@ export default function LoginModal({ isOpen, onClose }) {
   const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [regFullName, setRegFullName] = useState('');
   const [regEmail, setRegEmail] = useState('');
-  const [regPhone, setRegPhone] = useState('');
-  const [regAddress, setRegAddress] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [registerOk, setRegisterOk] = useState(null);
@@ -23,10 +20,7 @@ export default function LoginModal({ isOpen, onClose }) {
     setError(null);
     setRegisterOk(null);
     setShowPassword(false);
-    setRegFullName('');
     setRegEmail('');
-    setRegPhone('');
-    setRegAddress('');
     return () => {
       document.body.style.overflow = '';
     };
@@ -46,20 +40,14 @@ export default function LoginModal({ isOpen, onClose }) {
     try {
       if (mode === 'register') {
         await register({
-          fullName: regFullName.trim(),
-          email: regEmail.trim(),
-          phone: regPhone.trim() || undefined,
-          shippingAddress: regAddress.trim() || undefined,
           username: username.trim(),
           password,
+          email: regEmail.trim(),
         });
         setRegisterOk('Cuenta creada. Ahora puedes iniciar sesión con tu usuario y contraseña.');
         setMode('login');
         setPassword('');
-        setRegFullName('');
         setRegEmail('');
-        setRegPhone('');
-        setRegAddress('');
       } else {
         await login(username, password);
         setUsername('');
@@ -111,57 +99,18 @@ export default function LoginModal({ isOpen, onClose }) {
 
         <form className="login-modal-form" onSubmit={handleSubmit} autoComplete="off">
           {mode === 'register' && (
-            <>
-              <p className="login-modal-section-hint">
-                Estos datos se usarán para rellenar tu pedido al comprar.
-              </p>
-              <label className="login-modal-label">
-                Nombre completo
-                <input
-                  className="login-modal-input"
-                  name="profuit-reg-fullname"
-                  value={regFullName}
-                  onChange={(e) => setRegFullName(e.target.value)}
-                  autoComplete="name"
-                  required
-                  minLength={2}
-                />
-              </label>
-              <label className="login-modal-label">
-                Correo electrónico
-                <input
-                  className="login-modal-input"
-                  name="profuit-reg-email"
-                  type="email"
-                  value={regEmail}
-                  onChange={(e) => setRegEmail(e.target.value)}
-                  autoComplete="email"
-                  required
-                />
-              </label>
-              <label className="login-modal-label">
-                Teléfono <span className="login-modal-optional">(opcional)</span>
-                <input
-                  className="login-modal-input"
-                  name="profuit-reg-phone"
-                  type="tel"
-                  value={regPhone}
-                  onChange={(e) => setRegPhone(e.target.value)}
-                  autoComplete="tel"
-                />
-              </label>
-              <label className="login-modal-label">
-                Dirección <span className="login-modal-optional">(opcional)</span>
-                <textarea
-                  className="login-modal-textarea"
-                  name="profuit-reg-address"
-                  value={regAddress}
-                  onChange={(e) => setRegAddress(e.target.value)}
-                  autoComplete="street-address"
-                  rows={2}
-                />
-              </label>
-            </>
+            <label className="login-modal-label">
+              Correo electrónico
+              <input
+                className="login-modal-input"
+                name="profuit-reg-email"
+                type="email"
+                value={regEmail}
+                onChange={(e) => setRegEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+            </label>
           )}
           <label className="login-modal-label">
             Usuario

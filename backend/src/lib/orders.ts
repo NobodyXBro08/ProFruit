@@ -26,12 +26,10 @@ async function assertUserExists(conn: PoolConnection, userId: number): Promise<v
 }
 
 export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedOrder> {
-  const { items, customerName, customerEmail, customerPhone, shippingAddress, notes, userId } = input;
+  const { items, userId } = input;
 
   return withTransaction(async (conn) => {
-    if (userId !== undefined) {
-      await assertUserExists(conn, userId);
-    }
+    await assertUserExists(conn, userId);
 
     const productIds = items.map((i) => i.productId);
     const placeholders = productIds.map(() => "?").join(",");
@@ -81,32 +79,23 @@ export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedO
     total = Math.round(total * 100) / 100;
 
     const [orderResult] = await conn.query<ResultSetHeader>(
-      `INSERT INTO orders (user_id, status, total, customer_name, customer_email, customer_phone, shipping_address, notes)
-       VALUES (?, 'pending', ?, ?, ?, ?, ?, ?)`,
-      [
-        userId ?? null,
-        total,
-        customerName,
-        customerEmail,
-        customerPhone ?? null,
-        shippingAddress ?? null,
-        notes ?? null,
-      ]
+      "INSERT INTO orders (user_id, status, total) VALUES (?, 'pending', ?)",
+      [userId, total]
     );
 
     const orderId = Number(orderResult.insertId);
     if (!orderId) throw new OrderError("No se pudo crear el pedido.", 500);
 
     for (const line of resolvedLines) {
-      await conn.query(
-        `INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)`,
-        [orderId, line.productId, line.quantity, line.unitPrice]
+      await conn.query<ResultSetHeader>(
+        "INSERT INTO order_items (order_id, product_id, quantity) VALUES (?, ?, ?)",
+        [orderId, line.productId, line.quantity]
       );
     }
 
     for (const line of resolvedLines) {
       const [upd] = await conn.query<ResultSetHeader>(
-        `UPDATE products SET stock_reserved = stock_reserved + ? WHERE id = ? AND (stock - stock_reserved) >= ?`,
+        "UPDATE products SET stock_reserved = stock_reserved + ? WHERE id = ? AND (stock - stock_reserved) >= ?",
         [line.quantity, line.productId, line.quantity]
       );
       if (upd.affectedRows !== 1) {
@@ -126,7 +115,7 @@ export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedO
 export async function finalizePaidOrder(orderId: number): Promise<void> {
   return withTransaction(async (conn) => {
     const [orders] = await conn.query<RowDataPacket[]>(
-      "SELECT id, status FROM orders WHERE id = ? FOR UPDATE",
+      "SELECT id, status, total FROM orders WHERE id = ? FOR UPDATE",
       [orderId]
     );
     if (!orders.length) throw new OrderError("Pedido no encontrado.", 404);
@@ -134,6 +123,8 @@ export async function finalizePaidOrder(orderId: number): Promise<void> {
     if (st !== "pending") {
       throw new OrderError("Solo se pueden concretar pedidos en estado pendiente.", 409);
     }
+
+    const orderTotal = Number(orders[0].total);
 
     const [items] = await conn.query<RowDataPacket[]>(
       "SELECT product_id, quantity FROM order_items WHERE order_id = ?",
@@ -144,13 +135,18 @@ export async function finalizePaidOrder(orderId: number): Promise<void> {
       const pid = Number(row.product_id);
       const qty = Number(row.quantity);
       const [upd] = await conn.query<ResultSetHeader>(
-        `UPDATE products SET stock = stock - ?, stock_reserved = stock_reserved - ? WHERE id = ? AND stock_reserved >= ? AND stock >= ?`,
+        "UPDATE products SET stock = stock - ?, stock_reserved = stock_reserved - ? WHERE id = ? AND stock_reserved >= ? AND stock >= ?",
         [qty, qty, pid, qty, qty]
       );
       if (upd.affectedRows !== 1) {
         throw new OrderError(`Inventario inconsistente para el producto ${pid}.`, 500);
       }
     }
+
+    await conn.query<ResultSetHeader>(
+      "INSERT INTO payments (order_id, amount, status) VALUES (?, ?, ?)",
+      [orderId, orderTotal, "paid"]
+    );
 
     await conn.query("UPDATE orders SET status = 'paid' WHERE id = ?", [orderId]);
   });

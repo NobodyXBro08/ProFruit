@@ -7,14 +7,17 @@ function createPoolFromMysqlEnv(): Pool {
   const user = process.env.MYSQLUSER;
   const database = process.env.MYSQLDATABASE;
   if (!host || !user || !database) {
-    throw new Error(
-      "MYSQLHOST, MYSQLUSER y MYSQLDATABASE son obligatorios (red interna Railway / Docker)."
-    );
+    throw new Error("MYSQLHOST, MYSQLUSER y MYSQLDATABASE son obligatorios.");
+  }
+
+  const port = Number(process.env.MYSQLPORT ?? 3306);
+  if (!Number.isFinite(port) || port < 1) {
+    throw new Error("MYSQLPORT debe ser un número de puerto válido.");
   }
 
   return mysql.createPool({
     host,
-    port: Number(process.env.MYSQLPORT || 3306),
+    port,
     user,
     password: process.env.MYSQLPASSWORD ?? "",
     database,
@@ -26,7 +29,7 @@ function createPoolFromMysqlEnv(): Pool {
 function getPool(): Pool {
   if (!poolInstance) {
     poolInstance = createPoolFromMysqlEnv();
-    console.log("MySQL conectado usando red interna Railway");
+    console.log("MySQL pool inicializado (MYSQLHOST / MYSQLDATABASE).");
   }
   return poolInstance;
 }

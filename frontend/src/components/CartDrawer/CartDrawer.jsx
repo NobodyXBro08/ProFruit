@@ -9,11 +9,6 @@ import './CartDrawer.css';
 export default function CartDrawer({ isOpen, onClose }) {
   const { user } = useAuth();
   const { lines, bumpQuantity, removeLine, subtotal, clearCart } = useCart();
-  const [customerName, setCustomerName] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [shippingAddress, setShippingAddress] = useState('');
-  const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -32,31 +27,6 @@ export default function CartDrawer({ isOpen, onClose }) {
     if (isOpen && !user) onClose();
   }, [isOpen, user, onClose]);
 
-  useEffect(() => {
-    if (!isOpen || !user) return;
-    if (user.fullName) {
-      setCustomerName((n) => (n.trim() ? n : user.fullName));
-    } else {
-      const u = user.username.trim();
-      if (u.includes('@')) {
-        setCustomerEmail((e) => (e.trim() ? e : u));
-        setCustomerName((n) => (n.trim() ? n : ''));
-      } else {
-        setCustomerName((n) => (n.trim() ? n : u));
-        setCustomerEmail((e) => (e.trim() ? e : ''));
-      }
-    }
-    if (user.email) {
-      setCustomerEmail((e) => (e.trim() ? e : user.email));
-    }
-    if (user.phone) {
-      setCustomerPhone((p) => (p.trim() ? p : user.phone));
-    }
-    if (user.shippingAddress) {
-      setShippingAddress((s) => (s.trim() ? s : user.shippingAddress));
-    }
-  }, [isOpen, user]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -65,8 +35,8 @@ export default function CartDrawer({ isOpen, onClose }) {
       setError('El carrito está vacío.');
       return;
     }
-    if (!customerName.trim() || !customerEmail.trim()) {
-      setError('Nombre y correo son obligatorios.');
+    if (!user?.id) {
+      setError('Debes iniciar sesión para confirmar el pedido.');
       return;
     }
 
@@ -76,13 +46,8 @@ export default function CartDrawer({ isOpen, onClose }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          userId: user.id,
           items: lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
-          customerName: customerName.trim(),
-          customerEmail: customerEmail.trim(),
-          customerPhone: customerPhone.trim() || undefined,
-          shippingAddress: shippingAddress.trim() || undefined,
-          notes: notes.trim() || undefined,
-          ...(user ? { userId: user.id } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -90,11 +55,6 @@ export default function CartDrawer({ isOpen, onClose }) {
         throw new Error(data.error || data.message || 'No se pudo crear el pedido.');
       }
       clearCart();
-      setCustomerName('');
-      setCustomerEmail('');
-      setCustomerPhone('');
-      setShippingAddress('');
-      setNotes('');
       setSuccess(`Pedido #${data.id} registrado. Total: ${formatPrice(data.total)}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al enviar el pedido.');
@@ -175,60 +135,8 @@ export default function CartDrawer({ isOpen, onClose }) {
           )}
 
           <form className="cart-drawer-form" onSubmit={handleSubmit} autoComplete="off">
-            <p className="cart-drawer-form-title">Datos para el pedido</p>
-            <label className="cart-drawer-label">
-              Nombre completo
-              <input
-                className="cart-drawer-input"
-                name="profuit-customer-name"
-                id="profuit-customer-name"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                autoComplete="name"
-                required
-              />
-            </label>
-            <label className="cart-drawer-label">
-              Correo electrónico
-              <input
-                className="cart-drawer-input"
-                name="profuit-customer-email"
-                id="profuit-customer-email"
-                type="email"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                autoComplete="email"
-                required
-              />
-            </label>
-            <label className="cart-drawer-label">
-              Teléfono <span className="cart-drawer-optional">(opcional)</span>
-              <input
-                className="cart-drawer-input"
-                type="tel"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                autoComplete="tel"
-              />
-            </label>
-            <label className="cart-drawer-label">
-              Dirección de envío <span className="cart-drawer-optional">(opcional)</span>
-              <textarea
-                className="cart-drawer-textarea"
-                value={shippingAddress}
-                onChange={(e) => setShippingAddress(e.target.value)}
-                rows={2}
-              />
-            </label>
-            <label className="cart-drawer-label">
-              Notas <span className="cart-drawer-optional">(opcional)</span>
-              <textarea
-                className="cart-drawer-textarea"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={2}
-              />
-            </label>
+            <p className="cart-drawer-form-title">Confirmar pedido</p>
+            <p className="cart-drawer-form-hint">Se usará tu cuenta ({user?.username}) como titular del pedido.</p>
 
             {error && <p className="cart-drawer-msg cart-drawer-msg--error">{error}</p>}
             {success && <p className="cart-drawer-msg cart-drawer-msg--success">{success}</p>}

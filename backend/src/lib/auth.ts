@@ -1,25 +1,17 @@
-import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import bcrypt from "bcryptjs";
 import { pool, query } from "./db";
 
-const SCRYPT_KEYLEN = 64;
+const BCRYPT_ROUNDS = 10;
 
-export function hashPassword(plain: string): string {
-  const salt = randomBytes(16).toString("hex");
-  const hash = scryptSync(plain, salt, SCRYPT_KEYLEN).toString("hex");
-  return `${salt}:${hash}`;
+export async function hashPassword(plain: string): Promise<string> {
+  return bcrypt.hash(plain, BCRYPT_ROUNDS);
 }
 
-export function verifyPassword(plain: string, stored: string): boolean {
-  const parts = stored.split(":");
-  if (parts.length !== 2) return false;
-  const [salt, hash] = parts;
+export async function verifyPassword(plain: string, stored: string): Promise<boolean> {
   try {
-    const hashVerify = scryptSync(plain, salt, SCRYPT_KEYLEN);
-    const a = Buffer.from(hash, "hex");
-    const b = hashVerify;
-    if (a.length !== b.length) return false;
-    return timingSafeEqual(a, b);
-  } catch {
+    return await bcrypt.compare(plain, stored);
+  } catch (e) {
+    console.error("verifyPassword:", e);
     return false;
   }
 }
@@ -39,15 +31,12 @@ export function validateCredentials(
 export type UserAuthRow = {
   id: number;
   password_hash: string;
-  full_name: string | null;
   email: string | null;
-  phone: string | null;
-  shipping_address: string | null;
 };
 
 export async function findUserByUsername(username: string): Promise<UserAuthRow | null> {
   const rows = await query<Record<string, unknown>>(
-    "SELECT id, password_hash, full_name, email, phone, shipping_address FROM users WHERE username = ? LIMIT 1",
+    "SELECT id, password_hash, email FROM users WHERE username = ? LIMIT 1",
     [username]
   );
   const row = rows[0];
@@ -55,10 +44,7 @@ export async function findUserByUsername(username: string): Promise<UserAuthRow 
   return {
     id: Number(row.id),
     password_hash: String(row.password_hash),
-    full_name: row.full_name != null ? String(row.full_name) : null,
     email: row.email != null ? String(row.email) : null,
-    phone: row.phone != null ? String(row.phone) : null,
-    shipping_address: row.shipping_address != null ? String(row.shipping_address) : null,
   };
 }
 
@@ -71,27 +57,10 @@ export async function findUserByEmail(email: string): Promise<{ id: number } | n
   return rows[0] ?? null;
 }
 
-export type NewUserProfile = {
-  fullName: string;
-  email: string;
-  phone?: string;
-  shippingAddress?: string;
-};
-
-export async function createUser(
-  username: string,
-  passwordHash: string,
-  profile: NewUserProfile
-): Promise<void> {
-  await pool.execute(
-    "INSERT INTO users (username, password_hash, full_name, email, phone, shipping_address) VALUES (?, ?, ?, ?, ?, ?)",
-    [
-      username,
-      passwordHash,
-      profile.fullName,
-      profile.email,
-      profile.phone ?? null,
-      profile.shippingAddress ?? null,
-    ]
-  );
+export async function createUser(username: string, passwordHash: string, email: string): Promise<void> {
+  await pool.execute("INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)", [
+    username,
+    passwordHash,
+    email,
+  ]);
 }

@@ -1,6 +1,6 @@
 import type { Product } from "./products";
 
-type CreateFields = Pick<Product, "name" | "description" | "price" | "stock"> & { weight?: string };
+type CreateFields = Pick<Product, "name" | "description" | "price" | "stock"> & { weight?: string; image?: string };
 
 /**
  * Valida cuerpo para crear producto (campos obligatorios y tipos).
@@ -43,6 +43,15 @@ export function validateProductCreate(body: unknown): { ok: true; data: CreateFi
     weight = w === "" ? undefined : w;
   }
 
+  let image: string | undefined;
+  if (o.image !== undefined && o.image !== null) {
+    if (typeof o.image !== "string") {
+      return { ok: false, error: "El campo image, si se envía, debe ser texto." };
+    }
+    const im = o.image.trim();
+    image = im === "" ? undefined : im.slice(0, 512);
+  }
+
   return {
     ok: true,
     data: {
@@ -51,6 +60,7 @@ export function validateProductCreate(body: unknown): { ok: true; data: CreateFi
       price: priceNum,
       stock: stockNum,
       weight,
+      image,
     },
   };
 }

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { pool } from "@/lib/db";
 import { corsHeaders, corsJson, corsOptionsResponse } from "@/lib/cors";
-import { createProduct, deleteProduct, updateProduct } from "@/lib/products";
+import { createProduct, deleteProduct, listProducts, updateProduct } from "@/lib/products";
 import { readJsonBody, parseQueryId } from "@/lib/http";
 import { validateProductCreate, validateProductUpdate } from "@/lib/productValidators";
 
@@ -11,10 +10,10 @@ export function OPTIONS() {
 
 export async function GET() {
   try {
-    const [rows] = await pool.query("SELECT * FROM products");
+    const rows = await listProducts();
     return corsJson(rows, 200);
   } catch (error) {
-    console.error("ERROR PRODUCTS:", error);
+    console.error("GET /api/products:", error);
     const message = error instanceof Error ? error.message : String(error);
     return corsJson({ error: message }, 500);
   }
@@ -36,6 +35,7 @@ export async function POST(request: Request) {
       price: v.data.price,
       stock: v.data.stock,
       weight: v.data.weight,
+      image: v.data.image,
     });
     return NextResponse.json(product, { status: 201, headers: corsHeaders });
   } catch (error) {
@@ -61,6 +61,7 @@ export async function PUT(request: Request) {
       price: v.data.price,
       stock: v.data.stock,
       weight: v.data.weight,
+      image: v.data.image,
     });
 
     if (!updated) {
