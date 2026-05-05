@@ -31,10 +31,7 @@ export default function ProductCard({
   const priceLabel = formatPrice(price);
 
   return (
-    <article
-      className={`product-card-row ${soldOut ? 'product-card-row--soldout' : ''}`}
-      aria-disabled={soldOut}
-    >
+    <article className={`product-card-row ${soldOut ? 'product-card-row--soldout' : ''}`}>
       <div className="product-card-row__media">
         <img src={image} alt="" />
       </div>
