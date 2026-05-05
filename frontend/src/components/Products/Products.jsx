@@ -131,7 +131,7 @@ export default function Products() {
       <Container>
         <SectionHeader
           title="La tienda"
-          subtitle="Todo el catálogo en un vistazo. Usa la búsqueda arriba si buscas algo concreto."
+          subtitle="Desliza en el móvil o explora la cuadrícula. La búsqueda sigue arriba en la barra."
         />
 
         {visibleProducts.length === 0 ? (
@@ -143,78 +143,83 @@ export default function Products() {
             </Button>
           </div>
         ) : (
-          <ul className="products-grid">
-            {visibleProducts.map((product) => {
-              const isSoldOut = product.stock === 0;
-              const lowStock = !isSoldOut && product.stock > 0 && product.stock <= 3;
-              const imgSrc = getProductImage(product, product._index);
-              const organic =
-                /org[aá]nico|natural|campesino|local/i.test(
-                  `${product.name} ${product.description || ''}`,
-                );
+          <>
+            <p className="products-rail-hint" aria-hidden>
+              Desliza para ver más
+            </p>
+            <div className="products-rail-outer">
+              <ul className="products-track">
+                {visibleProducts.map((product) => {
+                  const isSoldOut = product.stock === 0;
+                  const lowStock = !isSoldOut && product.stock > 0 && product.stock <= 3;
+                  const imgSrc = getProductImage(product, product._index);
+                  const organic =
+                    /org[aá]nico|natural|campesino|local/i.test(
+                      `${product.name} ${product.description || ''}`,
+                    );
 
-              return (
-                <li key={product.id}>
-                  <article className={`product-card ${isSoldOut ? 'product-card--soldout' : ''}`}>
-                    <div className="product-card-image">
-                      <img src={imgSrc} alt={product.name} />
-                      <div className="product-card-badges">
-                        {organic ? <Badge tone="organic">Natural</Badge> : null}
-                        {lowStock ? <Badge tone="stock">Últimas unidades</Badge> : null}
-                        {isSoldOut ? <Badge tone="soldout">Agotado</Badge> : null}
-                      </div>
-                    </div>
+                  return (
+                    <li key={product.id} className="products-track-item">
+                      <article className={`product-card ${isSoldOut ? 'product-card--soldout' : ''}`}>
+                        <div className="product-card-image">
+                          <div className="product-card-image-frame">
+                            <img src={imgSrc} alt={product.name} />
+                          </div>
+                          <div className="product-card-badges">
+                            {organic ? <Badge tone="organic">Natural</Badge> : null}
+                            {lowStock ? <Badge tone="stock">Últimas</Badge> : null}
+                            {isSoldOut ? <Badge tone="soldout">Agotado</Badge> : null}
+                          </div>
+                        </div>
 
-                    <div className="product-card-body">
-                      <h3 className="product-name">{product.name}</h3>
-                      <p className="product-description">{product.description}</p>
-                      <div className="product-price-row">
-                        <span className="product-price">{formatPrice(product.price)}</span>
-                        {product.weight ? (
-                          <span className="product-weight">{product.weight}</span>
-                        ) : null}
-                      </div>
-                    </div>
+                        <div className="product-card-body">
+                          <h3 className="product-name">{product.name}</h3>
+                          {product.description ? (
+                            <p className="product-description">{product.description}</p>
+                          ) : null}
+                        </div>
 
-                    <div className="product-card-footer">
-                      {isSoldOut ? (
-                        <Button variant="secondary" size="md" className="product-btn-full" disabled>
-                          No disponible
-                        </Button>
-                      ) : !user ? (
-                        <Button
-                          variant="secondary"
-                          size="md"
-                          className="product-btn-full"
-                          type="button"
-                          onClick={() => {
-                            showToast('Necesitas una cuenta para comprar.', 'error');
-                            openLogin();
-                          }}
-                        >
-                          Inicia sesión para comprar
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="primary"
-                          size="md"
-                          className="product-btn-full"
-                          type="button"
-                          onClick={() => handleAdd(product, product._index)}
-                        >
-                          <FaShoppingCart aria-hidden />
-                          <span>Añadir al carrito</span>
-                        </Button>
-                      )}
-                    </div>
-                  </article>
-                </li>
-              );
-            })}
-          </ul>
+                        <div className="product-card-bar">
+                          <div className="product-card-priceblock">
+                            <span className="product-price">{formatPrice(product.price)}</span>
+                            {product.weight ? (
+                              <span className="product-weight">{product.weight}</span>
+                            ) : null}
+                          </div>
+                          <div className="product-card-cta">
+                            {isSoldOut ? (
+                              <span className="product-cta-pill product-cta-pill--muted">Sin stock</span>
+                            ) : !user ? (
+                              <button
+                                type="button"
+                                className="product-cta-pill product-cta-pill--ghost"
+                                onClick={() => {
+                                  showToast('Necesitas una cuenta para comprar.', 'error');
+                                  openLogin();
+                                }}
+                              >
+                                Entrar
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="product-cta-round"
+                                aria-label={`Añadir ${product.name} al carrito`}
+                                onClick={() => handleAdd(product, product._index)}
+                              >
+                                <FaShoppingCart aria-hidden />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </article>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </>
         )}
-
-        <p className="products-help">¿Dudas? Escríbenos desde el pie de página.</p>
       </Container>
     </section>
   );

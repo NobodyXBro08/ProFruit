@@ -1,7 +1,6 @@
 import React from 'react';
 import './JobWithUs.css';
 import { FiShoppingBag, FiHome, FiTruck, FiUsers, FiZap } from 'react-icons/fi';
-import Button from '../ui/Button.jsx';
 
 const partners = [
   {
@@ -33,8 +32,6 @@ const partners = [
     icon: <FiUsers />,
   },
 ];
-
-const SALES_MAIL = 'ventas@profruit.co';
 
 export default function JobsWithUs() {
   return (
@@ -73,37 +70,6 @@ export default function JobsWithUs() {
               <p className="jobs-bento-desc">{item.description}</p>
             </article>
           ))}
-        </div>
-
-        <div className="jobs-cta-panel">
-          <div className="jobs-cta-copy">
-            <h3 className="jobs-cta-title">¿Vendes, distribuyes o produces?</h3>
-            <p className="jobs-cta-text">
-              Escríbenos. Te respondemos con propuesta clara: catálogo, márgenes y logística. Sin humo.
-            </p>
-          </div>
-          <div className="jobs-cta-btns">
-            <Button
-              variant="primary"
-              size="md"
-              type="button"
-              className="jobs-cta-btn"
-              onClick={() => {
-                window.location.href = `mailto:${SALES_MAIL}?subject=Aliado%20ProFruit`;
-              }}
-            >
-              Hablar con ventas
-            </Button>
-            <Button
-              variant="ghost"
-              size="md"
-              type="button"
-              className="jobs-cta-btn jobs-cta-btn--ghost"
-              onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              Ver datos de contacto
-            </Button>
-          </div>
         </div>
       </div>
     </section>
