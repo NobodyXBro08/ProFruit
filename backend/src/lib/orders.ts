@@ -112,6 +112,29 @@ export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedO
   });
 }
 
+/**
+ * Dentro de una transacción: descuenta `stock` y libera `stock_reserved`
+ * según `order_items` (pedido creado en `pending` con reserva previa).
+ */
+export async function deductStockForConfirmedOrder(conn: PoolConnection, orderId: number): Promise<void> {
+  const [items] = await conn.query<RowDataPacket[]>(
+    "SELECT product_id, quantity FROM order_items WHERE order_id = ?",
+    [orderId]
+  );
+
+  for (const row of items) {
+    const pid = Number(row.product_id);
+    const qty = Number(row.quantity);
+    const [upd] = await conn.query<ResultSetHeader>(
+      "UPDATE products SET stock = stock - ?, stock_reserved = stock_reserved - ? WHERE id = ? AND stock_reserved >= ? AND stock >= ?",
+      [qty, qty, pid, qty, qty]
+    );
+    if (upd.affectedRows !== 1) {
+      throw new OrderError(`Inventario inconsistente para el producto ${pid}.`, 500);
+    }
+  }
+}
+
 export async function finalizePaidOrder(orderId: number): Promise<void> {
   return withTransaction(async (conn) => {
     const [orders] = await conn.query<RowDataPacket[]>(
@@ -126,22 +149,7 @@ export async function finalizePaidOrder(orderId: number): Promise<void> {
 
     const orderTotal = Number(orders[0].total);
 
-    const [items] = await conn.query<RowDataPacket[]>(
-      "SELECT product_id, quantity FROM order_items WHERE order_id = ?",
-      [orderId]
-    );
-
-    for (const row of items) {
-      const pid = Number(row.product_id);
-      const qty = Number(row.quantity);
-      const [upd] = await conn.query<ResultSetHeader>(
-        "UPDATE products SET stock = stock - ?, stock_reserved = stock_reserved - ? WHERE id = ? AND stock_reserved >= ? AND stock >= ?",
-        [qty, qty, pid, qty, qty]
-      );
-      if (upd.affectedRows !== 1) {
-        throw new OrderError(`Inventario inconsistente para el producto ${pid}.`, 500);
-      }
-    }
+    await deductStockForConfirmedOrder(conn, orderId);
 
     await conn.query<ResultSetHeader>(
       "INSERT INTO payments (order_id, amount, status) VALUES (?, ?, ?)",
