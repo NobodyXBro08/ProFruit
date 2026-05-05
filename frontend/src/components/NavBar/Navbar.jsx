@@ -7,23 +7,22 @@ import {
   FaShoppingBag,
   FaEllipsisH,
 } from 'react-icons/fa';
-import { IoCartOutline } from 'react-icons/io5';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import { useCatalog } from '../../context/CatalogContext.jsx';
 import { useLoginModal } from '../../context/LoginModalContext.jsx';
-import CartDrawer from '../CartDrawer/CartDrawer.jsx';
+import { useCartUi } from '../../context/CartUiContext.jsx';
 import './Navbar.css';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { searchQuery, setSearchQuery } = useCatalog();
-  const { totalQuantity, clearCart } = useCart();
+  const { clearCart } = useCart();
   const { user, logout } = useAuth();
   const { openLogin } = useLoginModal();
+  const { closeCart } = useCartUi();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -34,15 +33,9 @@ export default function Navbar() {
 
   const closeMenu = () => setIsMenuOpen(false);
 
-  const openCart = () => {
-    closeMenu();
-    setSearchOpen(false);
-    setIsCartOpen(true);
-  };
-
   const handleLogout = () => {
     clearCart();
-    setIsCartOpen(false);
+    closeCart();
     logout();
     closeMenu();
   };
@@ -81,11 +74,6 @@ export default function Navbar() {
       </li>
     </>
   );
-
-  const cartBadge =
-    totalQuantity > 0 ? (
-      <span className="navbar-cart-badge">{totalQuantity > 99 ? '99+' : totalQuantity}</span>
-    ) : null;
 
   return (
     <>
@@ -150,17 +138,6 @@ export default function Navbar() {
               }}
             >
               <FaSearch size={18} />
-            </button>
-
-            <button
-              type="button"
-              className="navbar-cart-cta"
-              onClick={openCart}
-              aria-label={`Tu bolsa${totalQuantity ? `, ${totalQuantity} productos` : ', vacía'}`}
-            >
-              <IoCartOutline size={22} aria-hidden />
-              <span className="navbar-cart-label">Bolsa</span>
-              {cartBadge}
             </button>
 
             {user ? (
@@ -260,13 +237,6 @@ export default function Navbar() {
           <FaShoppingBag size={20} aria-hidden />
           <span>Tienda</span>
         </a>
-        <button type="button" className="navbar-dock-item navbar-dock-item--cart" onClick={openCart}>
-          <span className="navbar-dock-cart-wrap">
-            <IoCartOutline size={26} aria-hidden />
-            {cartBadge ? <span className="navbar-dock-badge">{totalQuantity > 99 ? '99+' : totalQuantity}</span> : null}
-          </span>
-          <span>Bolsa</span>
-        </button>
         <button
           type="button"
           className={`navbar-dock-item ${isMenuOpen ? 'navbar-dock-item--active' : ''}`}
@@ -281,8 +251,6 @@ export default function Navbar() {
           <span>Más</span>
         </button>
       </nav>
-
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} onRequestLogin={openLogin} />
     </>
   );
 }

@@ -1,0 +1,66 @@
+:root {
+  --cart-fab-size: 3.5rem;
+}
+
+.cart-fab {
+  position: fixed;
+  z-index: 1190;
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  width: var(--cart-fab-size);
+  height: var(--cart-fab-size);
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: var(--color-brand);
+  color: var(--white);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 24px rgba(18, 72, 28, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cart-fab:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 28px rgba(18, 72, 28, 0.4);
+}
+
+.cart-fab:active {
+  transform: scale(0.98);
+}
+
+.cart-fab-icon {
+  flex-shrink: 0;
+}
+
+.cart-fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--white);
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--white);
+}
+
+/* Encima del dock móvil */
+@media (max-width: 899px) {
+  .cart-fab {
+    bottom: calc(var(--navbar-dock-height, 4.25rem) + 1rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (min-width: 900px) {
+  .cart-fab {
+    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}

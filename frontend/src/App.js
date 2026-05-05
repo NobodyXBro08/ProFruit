@@ -4,6 +4,7 @@ import { CartProvider } from './context/CartContext.jsx';
 import { CatalogProvider } from './context/CatalogContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import { LoginModalProvider } from './context/LoginModalContext.jsx';
+import { CartUiProvider } from './context/CartUiContext.jsx';
 import ToastViewport from './components/ui/ToastViewport.jsx';
 import Navbar from './components/NavBar/Navbar.jsx';
 import About from './components/About/About.jsx';
@@ -26,17 +27,19 @@ export default function App() {
         <AuthProvider>
           <LoginModalProvider>
             <CartProvider>
-              <SyncGuestCart />
-              <div className="app-root">
-                <Navbar />
-                <main id="inicio" className="app-main" tabIndex={-1}>
-                  <About />
-                  <Products />
-                  <Opinions />
-                  <JobWithUs />
-                </main>
-                <Footer />
-              </div>
+              <CartUiProvider>
+                <SyncGuestCart />
+                <div className="app-root">
+                  <Navbar />
+                  <main id="inicio" className="app-main" tabIndex={-1}>
+                    <About />
+                    <Products />
+                    <Opinions />
+                    <JobWithUs />
+                  </main>
+                  <Footer />
+                </div>
+              </CartUiProvider>
             </CartProvider>
           </LoginModalProvider>
         </AuthProvider>
