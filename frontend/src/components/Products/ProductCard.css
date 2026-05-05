@@ -37,8 +37,20 @@
 }
 
 .product-card-row--soldout {
-  opacity: 0.88;
-  filter: saturate(0.92);
+  opacity: 0.72;
+  filter: grayscale(0.25);
+  cursor: default;
+}
+
+.product-card-row--soldout .product-card-row__name,
+.product-card-row--soldout .product-card-row__desc,
+.product-card-row--soldout .product-card-row__price,
+.product-card-row--soldout .product-card-row__weight {
+  color: #9ca3af;
+}
+
+.product-card-row--soldout .product-card-row__price {
+  color: #94a3b8;
 }
 
 .product-card-row__media {
@@ -75,14 +87,6 @@
   justify-content: center;
 }
 
-.product-card-row__title-line {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
 .product-card-row__name {
   margin: 0;
   font-family: var(--font-display);
@@ -90,7 +94,6 @@
   font-weight: 600;
   color: #14532d;
   line-height: 1.25;
-  flex: 1;
   min-width: 0;
 }
 
@@ -98,26 +101,6 @@
   .product-card-row__name {
     font-size: 0.95rem;
   }
-}
-
-.product-card-row__availability {
-  flex-shrink: 0;
-  font-size: 0.6rem;
-  font-weight: 700;
-  padding: 0.12rem 0.45rem;
-  border-radius: var(--radius-full);
-  white-space: nowrap;
-  letter-spacing: 0.02em;
-}
-
-.product-card-row__availability--ok {
-  background: rgba(187, 247, 208, 0.65);
-  color: #166534;
-}
-
-.product-card-row__availability--out {
-  background: rgba(243, 244, 246, 0.95);
-  color: #6b7280;
 }
 
 .product-card-row__desc {
@@ -199,6 +182,20 @@
   transform: scale(0.96);
 }
 
+.product-card-row__cart:disabled,
+.product-card-row__cart--disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.product-card-row__cart:disabled:hover,
+.product-card-row__cart--disabled:hover {
+  background: #e5e7eb;
+}
+
 .product-card-row__login {
   font-family: var(--font-sans);
   font-size: 0.65rem;
@@ -213,9 +210,4 @@
 
 .product-card-row__login:hover {
   background: rgba(15, 118, 110, 0.2);
-}
-
-.product-card-row__cta-placeholder {
-  width: 2.25rem;
-  height: 2.25rem;
 }

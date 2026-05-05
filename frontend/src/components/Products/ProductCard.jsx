@@ -31,22 +31,16 @@ export default function ProductCard({
   const priceLabel = formatPrice(price);
 
   return (
-    <article className={`product-card-row ${soldOut ? 'product-card-row--soldout' : ''}`}>
+    <article
+      className={`product-card-row ${soldOut ? 'product-card-row--soldout' : ''}`}
+      aria-disabled={soldOut}
+    >
       <div className="product-card-row__media">
-        <img src={image} alt={name} />
+        <img src={image} alt="" />
       </div>
 
       <div className="product-card-row__body">
-        <div className="product-card-row__title-line">
-          <h3 className="product-card-row__name">{name}</h3>
-          <span
-            className={
-              soldOut ? 'product-card-row__availability product-card-row__availability--out' : 'product-card-row__availability product-card-row__availability--ok'
-            }
-          >
-            {soldOut ? 'Agotado' : 'Disponible'}
-          </span>
-        </div>
+        <h3 className="product-card-row__name">{name}</h3>
 
         {description ? <p className="product-card-row__desc">{description}</p> : null}
 
@@ -58,7 +52,14 @@ export default function ProductCard({
 
       <div className="product-card-row__cta">
         {soldOut ? (
-          <span className="product-card-row__cta-placeholder" aria-hidden />
+          <button
+            type="button"
+            className="product-card-row__cart product-card-row__cart--disabled"
+            disabled
+            aria-label={`${name}: sin existencias`}
+          >
+            <FaShoppingCart aria-hidden size={15} />
+          </button>
         ) : !userLoggedIn ? (
           <button type="button" className="product-card-row__login" onClick={onLoginRequest}>
             Entrar
