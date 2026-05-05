@@ -1,4 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import './Products.css';
 
 import MangoDeshidratado from '../../assets/images/MangoDeshidratado.jpg';
@@ -27,6 +28,27 @@ export default function Products() {
   const { showToast } = useToast();
   const { openLogin } = useLoginModal();
   const { searchQuery, setSearchQuery } = useCatalog();
+  const carouselRef = useRef(null);
+
+  const scrollCarousel = useCallback((direction) => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const step = Math.max(220, Math.floor(el.clientWidth * 0.72));
+    el.scrollBy({ left: direction === 'next' ? step : -step, behavior: 'smooth' });
+  }, []);
+
+  const onCarouselKeyDown = useCallback(
+    (e) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        scrollCarousel('prev');
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        scrollCarousel('next');
+      }
+    },
+    [scrollCarousel],
+  );
 
   useEffect(() => {
     async function loadProducts() {
@@ -88,7 +110,7 @@ export default function Products() {
 
   if (loading) {
     return (
-      <section className="products" id="products">
+      <section className="products products--tropical-menu" id="products">
         <Container>
           <SectionHeader title="La tienda" subtitle="Cargando catálogo…" />
           <p className="products-loading-msg">Cargando…</p>
@@ -99,7 +121,7 @@ export default function Products() {
 
   if (error) {
     return (
-      <section className="products" id="products">
+      <section className="products products--tropical-menu" id="products">
         <Container>
           <SectionHeader
             title="La tienda"
@@ -113,7 +135,7 @@ export default function Products() {
 
   if (products.length === 0) {
     return (
-      <section className="products" id="products">
+      <section className="products products--tropical-menu" id="products">
         <Container>
           <SectionHeader
             title="La tienda"
@@ -125,11 +147,11 @@ export default function Products() {
   }
 
   return (
-    <section className="products" id="products">
+    <section className="products products--tropical-menu" id="products">
       <Container>
         <SectionHeader
-          title="La tienda"
-          subtitle="Catálogo claro y rápido de leer. Usa la búsqueda en la barra superior."
+          title="Carta tropical"
+          subtitle="Una fila ligera estilo menú: desliza o usa las flechas. La búsqueda sigue arriba."
         />
 
         {visibleProducts.length === 0 ? (
@@ -141,29 +163,61 @@ export default function Products() {
             </Button>
           </div>
         ) : (
-          <ul className="products-list">
-            {visibleProducts.map((product) => {
-              const imgSrc = getProductImage(product, product._index);
-              return (
-                <li key={product.id} className="products-list-item">
-                  <ProductCard
-                    name={product.name}
-                    description={product.description}
-                    price={product.price}
-                    image={imgSrc}
-                    stock={product.stock}
-                    weight={product.weight}
-                    userLoggedIn={!!user}
-                    onAdd={() => handleAdd(product, product._index)}
-                    onLoginRequest={() => {
-                      showToast('Necesitas una cuenta para comprar.', 'error');
-                      openLogin();
-                    }}
-                  />
-                </li>
-              );
-            })}
-          </ul>
+          <div className="products-menu-panel">
+            <p className="products-menu-kicker" aria-hidden>
+              Fresco · Simple · Del día
+            </p>
+            <div className="products-carousel-shell">
+              <button
+                type="button"
+                className="products-carousel-nav products-carousel-nav--prev"
+                aria-label="Ver productos anteriores"
+                onClick={() => scrollCarousel('prev')}
+              >
+                <FaChevronLeft aria-hidden />
+              </button>
+              <div
+                className="products-carousel"
+                ref={carouselRef}
+                tabIndex={0}
+                role="region"
+                aria-label="Carrusel de productos"
+                onKeyDown={onCarouselKeyDown}
+              >
+                <ul className="products-carousel__track">
+                  {visibleProducts.map((product) => {
+                    const imgSrc = getProductImage(product, product._index);
+                    return (
+                      <li key={product.id} className="products-carousel__slide">
+                        <ProductCard
+                          name={product.name}
+                          description={product.description}
+                          price={product.price}
+                          image={imgSrc}
+                          stock={product.stock}
+                          weight={product.weight}
+                          userLoggedIn={!!user}
+                          onAdd={() => handleAdd(product, product._index)}
+                          onLoginRequest={() => {
+                            showToast('Necesitas una cuenta para comprar.', 'error');
+                            openLogin();
+                          }}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              <button
+                type="button"
+                className="products-carousel-nav products-carousel-nav--next"
+                aria-label="Ver más productos"
+                onClick={() => scrollCarousel('next')}
+              >
+                <FaChevronRight aria-hidden />
+              </button>
+            </div>
+          </div>
         )}
       </Container>
     </section>

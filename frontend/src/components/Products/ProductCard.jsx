@@ -70,7 +70,7 @@ export default function ProductCard({
             aria-label={`Añadir ${name} al carrito`}
             onClick={onAdd}
           >
-            <FaShoppingCart aria-hidden size={18} />
+            <FaShoppingCart aria-hidden size={15} />
           </button>
         )}
       </div>
