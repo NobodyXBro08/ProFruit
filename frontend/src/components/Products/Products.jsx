@@ -1,12 +1,10 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import './Products.css';
-import { FaShoppingCart } from 'react-icons/fa';
 
 import MangoDeshidratado from '../../assets/images/MangoDeshidratado.jpg';
 import PinaDeshidratada from '../../assets/images/PiñaAnillos.jpg';
 import ChipsBanano from '../../assets/images/ChipsDeBanano.jpg';
 import AnillosManzana from '../../assets/images/AnillosDeManzana.jpg';
-import { formatPrice } from '../../utils/formatPrice';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import { useCatalog } from '../../context/CatalogContext.jsx';
@@ -14,8 +12,8 @@ import { useToast } from '../../context/ToastContext.jsx';
 import { useLoginModal } from '../../context/LoginModalContext.jsx';
 import Container from '../ui/Container.jsx';
 import SectionHeader from '../ui/SectionHeader.jsx';
-import Badge from '../ui/Badge.jsx';
 import Button from '../ui/Button.jsx';
+import ProductCard from './ProductCard.jsx';
 
 const defaultImages = [MangoDeshidratado, PinaDeshidratada, ChipsBanano, AnillosManzana];
 
@@ -131,7 +129,7 @@ export default function Products() {
       <Container>
         <SectionHeader
           title="La tienda"
-          subtitle="Desliza en el móvil o explora la cuadrícula. La búsqueda sigue arriba en la barra."
+          subtitle="Catálogo claro y rápido de leer. Usa la búsqueda en la barra superior."
         />
 
         {visibleProducts.length === 0 ? (
@@ -143,82 +141,29 @@ export default function Products() {
             </Button>
           </div>
         ) : (
-          <>
-            <p className="products-rail-hint" aria-hidden>
-              Desliza para ver más
-            </p>
-            <div className="products-rail-outer">
-              <ul className="products-track">
-                {visibleProducts.map((product) => {
-                  const isSoldOut = product.stock === 0;
-                  const lowStock = !isSoldOut && product.stock > 0 && product.stock <= 3;
-                  const imgSrc = getProductImage(product, product._index);
-                  const organic =
-                    /org[aá]nico|natural|campesino|local/i.test(
-                      `${product.name} ${product.description || ''}`,
-                    );
-
-                  return (
-                    <li key={product.id} className="products-track-item">
-                      <article className={`product-card ${isSoldOut ? 'product-card--soldout' : ''}`}>
-                        <div className="product-card-image">
-                          <div className="product-card-image-frame">
-                            <img src={imgSrc} alt={product.name} />
-                          </div>
-                          <div className="product-card-badges">
-                            {organic ? <Badge tone="organic">Natural</Badge> : null}
-                            {lowStock ? <Badge tone="stock">Últimas</Badge> : null}
-                            {isSoldOut ? <Badge tone="soldout">Agotado</Badge> : null}
-                          </div>
-                        </div>
-
-                        <div className="product-card-body">
-                          <h3 className="product-name">{product.name}</h3>
-                          {product.description ? (
-                            <p className="product-description">{product.description}</p>
-                          ) : null}
-                        </div>
-
-                        <div className="product-card-bar">
-                          <div className="product-card-priceblock">
-                            <span className="product-price">{formatPrice(product.price)}</span>
-                            {product.weight ? (
-                              <span className="product-weight">{product.weight}</span>
-                            ) : null}
-                          </div>
-                          <div className="product-card-cta">
-                            {isSoldOut ? (
-                              <span className="product-cta-pill product-cta-pill--muted">Sin stock</span>
-                            ) : !user ? (
-                              <button
-                                type="button"
-                                className="product-cta-pill product-cta-pill--ghost"
-                                onClick={() => {
-                                  showToast('Necesitas una cuenta para comprar.', 'error');
-                                  openLogin();
-                                }}
-                              >
-                                Entrar
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                className="product-cta-round"
-                                aria-label={`Añadir ${product.name} al carrito`}
-                                onClick={() => handleAdd(product, product._index)}
-                              >
-                                <FaShoppingCart aria-hidden />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </article>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </>
+          <ul className="products-list">
+            {visibleProducts.map((product) => {
+              const imgSrc = getProductImage(product, product._index);
+              return (
+                <li key={product.id} className="products-list-item">
+                  <ProductCard
+                    name={product.name}
+                    description={product.description}
+                    price={product.price}
+                    image={imgSrc}
+                    stock={product.stock}
+                    weight={product.weight}
+                    userLoggedIn={!!user}
+                    onAdd={() => handleAdd(product, product._index)}
+                    onLoginRequest={() => {
+                      showToast('Necesitas una cuenta para comprar.', 'error');
+                      openLogin();
+                    }}
+                  />
+                </li>
+              );
+            })}
+          </ul>
         )}
       </Container>
     </section>
