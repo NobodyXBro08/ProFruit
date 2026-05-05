@@ -1,11 +1,4 @@
-import { FaStar, FaRegStar } from 'react-icons/fa';
-
-/** Valoración visual fija para tarjetas de catálogo (4 llenas + 1 vacía). */
-export function CatalogProductStars() {
-  return Array.from({ length: 5 }).map((_, idx) =>
-    idx < 4 ? <FaStar key={idx} /> : <FaRegStar key={idx} />,
-  );
-}
+import { FaStar } from 'react-icons/fa';
 
 /**
  * N estrellas completas (p. ej. testimonios según rating 1–5).

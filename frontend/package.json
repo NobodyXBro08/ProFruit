@@ -20,7 +20,7 @@
   "scripts": {
     "start": "cross-env PORT=3001 react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "cross-env REACT_APP_API_URL=http://127.0.0.1:3000 react-scripts test",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:ui\"",
     "dev:api": "cd ../backend && npm run dev",
     "dev:ui": "cross-env PORT=3001 react-scripts start"

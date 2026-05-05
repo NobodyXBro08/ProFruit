@@ -2,6 +2,8 @@ import React from 'react';
 import './Opinions.css';
 import { FaQuoteLeft } from 'react-icons/fa6';
 import { StarsFilled } from '../../utils/stars';
+import Container from '../ui/Container.jsx';
+import SectionHeader from '../ui/SectionHeader.jsx';
 
 const testimonials = [
   {
@@ -10,7 +12,7 @@ const testimonials = [
     city: 'Bogotá',
     initials: 'MG',
     rating: 5,
-    text: 'Los frutos deshidratados de ProFruit son increíbles. La calidad es excepcional y el sabor es auténtico. ¡Mi familia los ama!',
+    text: 'Los productos de ProFruit son increíbles. La calidad es excepcional y el sabor es auténtico. ¡Mi familia los ama!',
   },
   {
     id: 2,
@@ -34,44 +36,41 @@ const testimonials = [
     city: 'Cartagena',
     initials: 'LH',
     rating: 5,
-    text: 'La mejor opción para snacks saludables. Mis hijos prefieren estos frutos a cualquier dulce procesado. ¡Gracias ProFruit!',
+    text: 'La mejor opción para snacks saludables. Mis hijos prefieren estos productos a cualquier dulce procesado. ¡Gracias ProFruit!',
   },
 ];
 
-/**
- * Testimonios de clientes: grid de tarjetas con datos estáticos definidos en `testimonials`.
- */
 export default function Opinions() {
   return (
     <section className="opinions" id="opinions">
-      <div className="opinions-header">
-        <h2 className="opinions-title">Lo que dicen nuestros clientes</h2>
-        <p className="opinions-subtitle">
-          Miles de familias confían en ProFruit para sus snacks saludables y naturales.
-        </p>
-      </div>
+      <Container>
+        <SectionHeader
+          title="Lo que dicen nuestros clientes"
+          subtitle="Familias y tiendas que confían en ProFruit para comprar natural, sin complicaciones."
+        />
 
-      <div className="opinions-grid">
-        {testimonials.map((item) => (
-          <article key={item.id} className="opinion-card">
-            <FaQuoteLeft className="opinion-quote-icon" />
+        <div className="opinions-grid">
+          {testimonials.map((item) => (
+            <article key={item.id} className="opinion-card">
+              <FaQuoteLeft className="opinion-quote-icon" aria-hidden />
 
-            <div className="opinion-stars">
-              <StarsFilled count={item.rating} />
-            </div>
-
-            <p className="opinion-text">"{item.text}"</p>
-
-            <div className="opinion-user">
-              <div className="opinion-avatar">{item.initials}</div>
-              <div>
-                <p className="opinion-name">{item.name}</p>
-                <p className="opinion-city">{item.city}</p>
+              <div className="opinion-stars">
+                <StarsFilled count={item.rating} />
               </div>
-            </div>
-          </article>
-        ))}
-      </div>
+
+              <p className="opinion-text">&ldquo;{item.text}&rdquo;</p>
+
+              <div className="opinion-user">
+                <div className="opinion-avatar">{item.initials}</div>
+                <div>
+                  <p className="opinion-name">{item.name}</p>
+                  <p className="opinion-city">{item.city}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </Container>
     </section>
   );
 }

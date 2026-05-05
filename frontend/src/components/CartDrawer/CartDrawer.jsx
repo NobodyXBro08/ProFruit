@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import { formatPrice } from '../../utils/formatPrice';
 import { api } from '../../config/api';
+import Button from '../ui/Button.jsx';
 import './CartDrawer.css';
 
 function orderStatusLabel(status) {
@@ -12,7 +13,7 @@ function orderStatusLabel(status) {
   return String(status || '—');
 }
 
-export default function CartDrawer({ isOpen, onClose }) {
+export default function CartDrawer({ isOpen, onClose, onRequestLogin }) {
   const { user } = useAuth();
   const { lines, bumpQuantity, removeLine, subtotal, clearCart } = useCart();
   const [submitting, setSubmitting] = useState(false);
@@ -35,10 +36,6 @@ export default function CartDrawer({ isOpen, onClose }) {
     };
   }, [isOpen]);
 
-  useEffect(() => {
-    if (isOpen && !user) onClose();
-  }, [isOpen, user, onClose]);
-
   const pagar = useCallback(async (orderId) => {
     setPayError(null);
     setPayMessage(null);
@@ -54,7 +51,7 @@ export default function CartDrawer({ isOpen, onClose }) {
         throw new Error(data.error || data.message || 'No se pudo procesar el pago.');
       }
       setLastOrder((prev) =>
-        prev && prev.id === orderId ? { ...prev, status: 'paid' } : prev
+        prev && prev.id === orderId ? { ...prev, status: 'paid' } : prev,
       );
       setPayMessage(data.message || 'Pago realizado.');
     } catch (err) {
@@ -76,7 +73,7 @@ export default function CartDrawer({ isOpen, onClose }) {
       return;
     }
     if (!user) {
-      setError('Debes iniciar sesión para confirmar el pedido.');
+      setError('Para confirmar el pedido necesitas una cuenta. Inicia sesión y vuelve a confirmar.');
       return;
     }
 
@@ -125,7 +122,7 @@ export default function CartDrawer({ isOpen, onClose }) {
       <aside className="cart-drawer-panel">
         <header className="cart-drawer-header">
           <h2 id="cart-drawer-title" className="cart-drawer-title">
-            Carrito
+            Tu carrito
           </h2>
           <button type="button" className="cart-drawer-close" onClick={onClose} aria-label="Cerrar">
             <FaTimes size={20} />
@@ -134,16 +131,29 @@ export default function CartDrawer({ isOpen, onClose }) {
 
         <div className="cart-drawer-body">
           {lines.length === 0 ? (
-            !lastOrder && <p className="cart-drawer-empty">No hay productos. Añade ítems desde el catálogo.</p>
+            !lastOrder && (
+              <p className="cart-drawer-empty">Aún no hay productos. Añade ítems desde el catálogo.</p>
+            )
           ) : (
             <ul className="cart-drawer-lines">
               {lines.map((line) => (
                 <li key={line.productId} className="cart-drawer-line">
-                  <div className="cart-drawer-line-info">
-                    <span className="cart-drawer-line-name">{line.name}</span>
-                    <span className="cart-drawer-line-price">{formatPrice(line.price)} c/u</span>
+                  <div className="cart-drawer-line-main">
+                    {line.image ? (
+                      <div className="cart-drawer-thumb">
+                        <img src={line.image} alt={line.name} />
+                      </div>
+                    ) : (
+                      <div className="cart-drawer-thumb cart-drawer-thumb--placeholder" aria-hidden />
+                    )}
+                    <div className="cart-drawer-line-info">
+                      <span className="cart-drawer-line-name">{line.name}</span>
+                      <span className="cart-drawer-line-price">{formatPrice(line.price)} c/u</span>
+                    </div>
                   </div>
-                  <div className="cart-drawer-line-actions">
+                  <div
+                    className={`cart-drawer-line-actions ${line.image ? '' : 'cart-drawer-line-actions--flush'}`}
+                  >
                     <div className="cart-drawer-qty">
                       <button
                         type="button"
@@ -164,9 +174,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                         <FaPlus size={12} />
                       </button>
                     </div>
-                    <span className="cart-drawer-line-sub">
-                      {formatPrice(line.quantity * line.price)}
-                    </span>
+                    <span className="cart-drawer-line-sub">{formatPrice(line.quantity * line.price)}</span>
                     <button
                       type="button"
                       className="cart-drawer-remove"
@@ -209,34 +217,53 @@ export default function CartDrawer({ isOpen, onClose }) {
                 </span>
               </p>
               {lastOrder.status === 'pending' && (
-                <button
+                <Button
                   type="button"
+                  variant="dark"
+                  size="md"
                   className="cart-drawer-pay-btn"
                   disabled={paying}
                   onClick={() => pagar(lastOrder.id)}
                 >
-                  {paying ? 'Procesando…' : 'Pagar'}
-                </button>
+                  {paying ? 'Procesando…' : 'Pagar ahora'}
+                </Button>
               )}
               {payError && <p className="cart-drawer-msg cart-drawer-msg--error">{payError}</p>}
               {payMessage && <p className="cart-drawer-msg cart-drawer-msg--success">{payMessage}</p>}
             </div>
           )}
 
+          {!user && lines.length > 0 ? (
+            <div className="cart-drawer-guest-banner">
+              <p className="cart-drawer-guest-text">
+                <strong>¿Listo para pagar?</strong> Inicia sesión para confirmar tu pedido con tu cuenta.
+              </p>
+              <Button type="button" variant="primary" size="sm" onClick={() => onRequestLogin?.()}>
+                Iniciar sesión
+              </Button>
+            </div>
+          ) : null}
+
           <form className="cart-drawer-form" onSubmit={handleSubmit} autoComplete="off">
             <p className="cart-drawer-form-title">Confirmar pedido</p>
-            <p className="cart-drawer-form-hint">Se usará tu cuenta ({user?.username}) como titular del pedido.</p>
+            <p className="cart-drawer-form-hint">
+              {user
+                ? `Se usará tu cuenta (${user.username}) como titular del pedido.`
+                : 'Inicia sesión para enviar el pedido al servidor.'}
+            </p>
 
             {error && <p className="cart-drawer-msg cart-drawer-msg--error">{error}</p>}
             {success && <p className="cart-drawer-msg cart-drawer-msg--success">{success}</p>}
 
-            <button
+            <Button
               type="submit"
+              variant="dark"
+              size="md"
               className="cart-drawer-submit"
-              disabled={submitting || lines.length === 0}
+              disabled={submitting || lines.length === 0 || !user}
             >
               {submitting ? 'Enviando…' : 'Confirmar pedido'}
-            </button>
+            </Button>
           </form>
         </div>
       </aside>

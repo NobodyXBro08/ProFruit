@@ -14,6 +14,6 @@ test('renderiza la aplicación y muestra la marca en la barra de navegación', a
   render(<App />);
   const marcas = await screen.findAllByText('ProFruit');
   expect(marcas.length).toBeGreaterThanOrEqual(1);
-  const logo = screen.getByRole('link', { name: 'ProFruit' });
+  const logo = screen.getByRole('link', { name: /ProFruit/i });
   expect(logo.getAttribute('href')).toBe('#inicio');
 });

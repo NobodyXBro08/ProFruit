@@ -1,6 +1,9 @@
 import React, { useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { CartProvider } from './context/CartContext.jsx';
+import { CatalogProvider } from './context/CatalogContext.jsx';
+import { ToastProvider } from './context/ToastContext.jsx';
+import ToastViewport from './components/ui/ToastViewport.jsx';
 import Navbar from './components/NavBar/Navbar.jsx';
 import About from './components/About/About.jsx';
 import Products from './components/Products/Products.jsx';
@@ -15,19 +18,24 @@ export default function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <CartProvider>
-        <div className="app-root">
-          <Navbar />
-          <main id="inicio" className="app-main" tabIndex={-1}>
-            <About />
-            <Products />
-            <Opinions />
-            <JobWithUs />
-          </main>
-          <Footer />
-        </div>
-      </CartProvider>
-    </AuthProvider>
+    <CatalogProvider>
+      <ToastProvider>
+        <ToastViewport />
+        <AuthProvider>
+          <CartProvider>
+            <div className="app-root">
+              <Navbar />
+              <main id="inicio" className="app-main" tabIndex={-1}>
+                <About />
+                <Products />
+                <Opinions />
+                <JobWithUs />
+              </main>
+              <Footer />
+            </div>
+          </CartProvider>
+        </AuthProvider>
+      </ToastProvider>
+    </CatalogProvider>
   );
 }

@@ -1,0 +1,35 @@
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  line-height: 1.2;
+}
+
+.ui-badge--default {
+  background: var(--color-surface-warm);
+  color: var(--color-brand);
+}
+
+.ui-badge--sale {
+  background: rgba(232, 93, 122, 0.18);
+  color: #9f2940;
+}
+
+.ui-badge--stock {
+  background: var(--color-warning-bg);
+  color: #8a5a00;
+}
+
+.ui-badge--soldout {
+  background: #e53935;
+  color: var(--white);
+}
+
+.ui-badge--organic {
+  background: rgba(64, 145, 108, 0.2);
+  color: var(--color-brand-muted);
+}

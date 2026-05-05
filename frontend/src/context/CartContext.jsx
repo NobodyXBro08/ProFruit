@@ -17,7 +17,7 @@ function loadInitialLines() {
         typeof l.name === 'string' &&
         typeof l.price === 'number' &&
         typeof l.quantity === 'number' &&
-        typeof l.maxStock === 'number'
+        typeof l.maxStock === 'number',
     );
   } catch {
     return [];
@@ -35,10 +35,16 @@ export function CartProvider({ children }) {
     }
   }, [lines]);
 
-  const addToCart = useCallback((product) => {
+  const addToCart = useCallback((product, imageUrl = null) => {
     if (!product?.id || product.stock < 1) return;
     const stock = Number(product.stock);
     const price = Number(product.price);
+    const img =
+      imageUrl ||
+      (product.image && (product.image.startsWith('http') || product.image.startsWith('data:'))
+        ? product.image
+        : null);
+
     setLines((prev) => {
       const i = prev.findIndex((l) => l.productId === product.id);
       if (i === -1) {
@@ -50,6 +56,7 @@ export function CartProvider({ children }) {
             price,
             maxStock: stock,
             quantity: 1,
+            ...(img ? { image: img } : {}),
           },
         ];
       }
@@ -62,6 +69,7 @@ export function CartProvider({ children }) {
         price,
         maxStock: stock,
         quantity: nextQty,
+        ...(img ? { image: img } : {}),
       };
       return next;
     });
@@ -104,7 +112,7 @@ export function CartProvider({ children }) {
   const totalQuantity = useMemo(() => lines.reduce((s, l) => s + l.quantity, 0), [lines]);
   const subtotal = useMemo(
     () => Math.round(lines.reduce((s, l) => s + l.quantity * l.price, 0) * 100) / 100,
-    [lines]
+    [lines],
   );
 
   const value = useMemo(
@@ -118,7 +126,7 @@ export function CartProvider({ children }) {
       totalQuantity,
       subtotal,
     }),
-    [lines, addToCart, setLineQuantity, bumpQuantity, removeLine, clearCart, totalQuantity, subtotal]
+    [lines, addToCart, setLineQuantity, bumpQuantity, removeLine, clearCart, totalQuantity, subtotal],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
