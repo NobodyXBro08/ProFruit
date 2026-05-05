@@ -5,15 +5,22 @@ const AuthContext = createContext(null);
 
 const STORAGE_KEY = 'profruit-auth-v1';
 
+function normalizeUserId(value) {
+  const n = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN;
+  if (!Number.isInteger(n) || n < 1) return null;
+  return n;
+}
+
 function loadUser() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const o = JSON.parse(raw);
-    if (!o || typeof o.id !== 'number' || typeof o.username !== 'string') return null;
+    const id = normalizeUserId(o?.id);
+    if (!o || id === null || typeof o.username !== 'string' || !o.username.trim()) return null;
     return {
-      id: o.id,
-      username: o.username,
+      id,
+      username: o.username.trim(),
       ...(typeof o.fullName === 'string' && o.fullName.trim() && { fullName: o.fullName.trim() }),
       ...(typeof o.email === 'string' && o.email.trim() && { email: o.email.trim() }),
       ...(typeof o.phone === 'string' && o.phone.trim() && { phone: o.phone.trim() }),
@@ -48,13 +55,14 @@ export function AuthProvider({ children }) {
     if (!res.ok) {
       throw new Error(data.error || data.message || 'No se pudo iniciar sesión.');
     }
-    if (!data.user || typeof data.user.id !== 'number' || typeof data.user.username !== 'string') {
+    const uid = normalizeUserId(data.user?.id);
+    if (!data.user || uid === null || typeof data.user.username !== 'string' || !String(data.user.username).trim()) {
       throw new Error('Respuesta del servidor inválida.');
     }
     const u = data.user;
     setUser({
-      id: u.id,
-      username: u.username,
+      id: uid,
+      username: String(u.username).trim(),
       ...(u.fullName && { fullName: u.fullName }),
       ...(u.email && { email: u.email }),
       ...(u.phone && { phone: u.phone }),

@@ -75,8 +75,14 @@ export default function CartDrawer({ isOpen, onClose }) {
       setError('El carrito está vacío.');
       return;
     }
-    if (!user?.id) {
+    if (!user) {
       setError('Debes iniciar sesión para confirmar el pedido.');
+      return;
+    }
+
+    const userId = Number(user.id);
+    if (!Number.isInteger(userId) || userId < 1) {
+      setError('Tu sesión no es válida (falta el id de usuario). Cierra sesión e inicia sesión de nuevo.');
       return;
     }
 
@@ -86,13 +92,15 @@ export default function CartDrawer({ isOpen, onClose }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
+          userId,
           items: lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || data.message || 'No se pudo crear el pedido.');
+        const base = data.error || data.message || 'No se pudo crear el pedido.';
+        const extra = typeof data.details === 'string' && data.details.trim() ? ` (${data.details.trim()})` : '';
+        throw new Error(`${base}${extra}`);
       }
       clearCart();
       const status = typeof data.status === 'string' ? data.status : 'pending';
