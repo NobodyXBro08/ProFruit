@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FaTimes, FaMinus, FaPlus, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
@@ -6,18 +6,30 @@ import { formatPrice } from '../../utils/formatPrice';
 import { api } from '../../config/api';
 import './CartDrawer.css';
 
+function orderStatusLabel(status) {
+  if (status === 'pending') return 'Pendiente de pago';
+  if (status === 'paid') return 'Pagado';
+  return String(status || '—');
+}
+
 export default function CartDrawer({ isOpen, onClose }) {
   const { user } = useAuth();
   const { lines, bumpQuantity, removeLine, subtotal, clearCart } = useCart();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [lastOrder, setLastOrder] = useState(null);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState(null);
+  const [payMessage, setPayMessage] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
     document.body.style.overflow = 'hidden';
     setError(null);
     setSuccess(null);
+    setPayError(null);
+    setPayMessage(null);
     return () => {
       document.body.style.overflow = '';
     };
@@ -27,10 +39,38 @@ export default function CartDrawer({ isOpen, onClose }) {
     if (isOpen && !user) onClose();
   }, [isOpen, user, onClose]);
 
+  const pagar = useCallback(async (orderId) => {
+    setPayError(null);
+    setPayMessage(null);
+    setPaying(true);
+    try {
+      const res = await fetch(api('/api/pay'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || data.message || 'No se pudo procesar el pago.');
+      }
+      setLastOrder((prev) =>
+        prev && prev.id === orderId ? { ...prev, status: 'paid' } : prev
+      );
+      setPayMessage(data.message || 'Pago realizado.');
+    } catch (err) {
+      setPayError(err instanceof Error ? err.message : 'Error al pagar.');
+    } finally {
+      setPaying(false);
+    }
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setLastOrder(null);
+    setPayError(null);
+    setPayMessage(null);
     if (lines.length === 0) {
       setError('El carrito está vacío.');
       return;
@@ -55,7 +95,13 @@ export default function CartDrawer({ isOpen, onClose }) {
         throw new Error(data.error || data.message || 'No se pudo crear el pedido.');
       }
       clearCart();
-      setSuccess(`Pedido #${data.id} registrado. Total: ${formatPrice(data.total)}.`);
+      const status = typeof data.status === 'string' ? data.status : 'pending';
+      setLastOrder({
+        id: Number(data.id),
+        status,
+        total: Number(data.total),
+      });
+      setSuccess(`Pedido #${data.id} creado. Total: ${formatPrice(data.total)}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al enviar el pedido.');
     } finally {
@@ -80,7 +126,7 @@ export default function CartDrawer({ isOpen, onClose }) {
 
         <div className="cart-drawer-body">
           {lines.length === 0 ? (
-            <p className="cart-drawer-empty">No hay productos. Añade ítems desde el catálogo.</p>
+            !lastOrder && <p className="cart-drawer-empty">No hay productos. Añade ítems desde el catálogo.</p>
           ) : (
             <ul className="cart-drawer-lines">
               {lines.map((line) => (
@@ -131,6 +177,41 @@ export default function CartDrawer({ isOpen, onClose }) {
             <div className="cart-drawer-total-row">
               <span>Subtotal</span>
               <strong>{formatPrice(subtotal)}</strong>
+            </div>
+          )}
+
+          {lastOrder && (
+            <div className="cart-drawer-order-card">
+              <p className="cart-drawer-order-card-title">Tu pedido</p>
+              <p className="cart-drawer-order-card-row">
+                <span>N.º</span>
+                <strong>#{lastOrder.id}</strong>
+              </p>
+              <p className="cart-drawer-order-card-row">
+                <span>Total</span>
+                <strong>{formatPrice(lastOrder.total)}</strong>
+              </p>
+              <p className="cart-drawer-order-card-row cart-drawer-order-card-row--status">
+                <span>Estado</span>
+                <span
+                  className={`cart-drawer-order-status cart-drawer-order-status--${lastOrder.status}`}
+                  title={lastOrder.status}
+                >
+                  {orderStatusLabel(lastOrder.status)}
+                </span>
+              </p>
+              {lastOrder.status === 'pending' && (
+                <button
+                  type="button"
+                  className="cart-drawer-pay-btn"
+                  disabled={paying}
+                  onClick={() => pagar(lastOrder.id)}
+                >
+                  {paying ? 'Procesando…' : 'Pagar'}
+                </button>
+              )}
+              {payError && <p className="cart-drawer-msg cart-drawer-msg--error">{payError}</p>}
+              {payMessage && <p className="cart-drawer-msg cart-drawer-msg--success">{payMessage}</p>}
             </div>
           )}
 
