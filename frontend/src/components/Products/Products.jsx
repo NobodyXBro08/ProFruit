@@ -15,23 +15,8 @@ import Container from '../ui/Container.jsx';
 import SectionHeader from '../ui/SectionHeader.jsx';
 import Badge from '../ui/Badge.jsx';
 import Button from '../ui/Button.jsx';
-import {
-  CATEGORY_LABELS,
-  CATEGORY_ORDER,
-  inferProductCategory,
-} from '../../utils/inferProductCategory.js';
 
 const defaultImages = [MangoDeshidratado, PinaDeshidratada, ChipsBanano, AnillosManzana];
-
-function priceThresholds(prices) {
-  const sorted = [...prices].filter((p) => Number.isFinite(p)).sort((a, b) => a - b);
-  const n = sorted.length;
-  if (n === 0) return { low: 0, high: 0 };
-  return {
-    low: sorted[Math.floor(n * 0.33)],
-    high: sorted[Math.floor(n * 0.66)],
-  };
-}
 
 export default function Products() {
   const API = process.env.REACT_APP_API_URL;
@@ -41,16 +26,7 @@ export default function Products() {
   const { user } = useAuth();
   const { addToCart } = useCart();
   const { showToast } = useToast();
-  const {
-    searchQuery,
-    category,
-    setCategory,
-    sort,
-    setSort,
-    pricePreset,
-    setPricePreset,
-    resetFilters,
-  } = useCatalog();
+  const { searchQuery, setSearchQuery } = useCatalog();
 
   useEffect(() => {
     async function loadProducts() {
@@ -78,41 +54,19 @@ export default function Products() {
     loadProducts();
   }, [API]);
 
-  const productsWithMeta = useMemo(() => {
-    return products.map((p, index) => ({
-      ...p,
-      _category: inferProductCategory(p),
-      _index: index,
-    }));
-  }, [products]);
-
-  const thresholds = useMemo(
-    () => priceThresholds(products.map((p) => Number(p.price))),
+  const productsIndexed = useMemo(
+    () => products.map((p, index) => ({ ...p, _index: index })),
     [products],
   );
 
-  const filteredSorted = useMemo(() => {
+  const visibleProducts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    let list = productsWithMeta.filter((p) => {
-      if (category !== 'all' && p._category !== category) return false;
-      if (q) {
-        const hay = `${p.name} ${p.description || ''}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      const price = Number(p.price);
-      if (pricePreset === 'low' && price > thresholds.low) return false;
-      if (pricePreset === 'mid' && (price <= thresholds.low || price > thresholds.high)) return false;
-      if (pricePreset === 'high' && price <= thresholds.high) return false;
-      return true;
+    if (!q) return productsIndexed;
+    return productsIndexed.filter((p) => {
+      const hay = `${p.name} ${p.description || ''}`.toLowerCase();
+      return hay.includes(q);
     });
-
-    if (sort === 'price-asc') list = [...list].sort((a, b) => Number(a.price) - Number(b.price));
-    else if (sort === 'price-desc') list = [...list].sort((a, b) => Number(b.price) - Number(a.price));
-    else if (sort === 'name') list = [...list].sort((a, b) => String(a.name).localeCompare(String(b.name)));
-    else list = [...list];
-
-    return list;
-  }, [productsWithMeta, searchQuery, category, sort, pricePreset, thresholds]);
+  }, [productsIndexed, searchQuery]);
 
   const getProductImage = (product, index) => {
     if (product.image && (product.image.startsWith('http') || product.image.startsWith('data:'))) {
@@ -131,7 +85,7 @@ export default function Products() {
     return (
       <section className="products" id="products">
         <Container>
-          <SectionHeader title="Nuestros productos" subtitle="Cargando catálogo…" />
+          <SectionHeader title="La tienda" subtitle="Cargando catálogo…" />
           <p className="products-loading-msg">Cargando…</p>
         </Container>
       </section>
@@ -143,7 +97,7 @@ export default function Products() {
       <section className="products" id="products">
         <Container>
           <SectionHeader
-            title="Nuestros productos"
+            title="La tienda"
             subtitle={error}
             subtitleClassName="section-header-subtitle--error"
           />
@@ -157,7 +111,7 @@ export default function Products() {
       <section className="products" id="products">
         <Container>
           <SectionHeader
-            title="Nuestros productos"
+            title="La tienda"
             subtitle="No hay productos en la base de datos. Revisa el seed o la documentación del proyecto."
           />
         </Container>
@@ -165,76 +119,25 @@ export default function Products() {
     );
   }
 
-  const priceLabel =
-    products.length < 2
-      ? 'Precio'
-      : `Precio (${formatPrice(thresholds.low)} · ${formatPrice(thresholds.high)})`;
-
   return (
     <section className="products" id="products">
       <Container>
         <SectionHeader
-          title="Frutas y snacks naturales"
-          subtitle="Selección ProFruit: calidad de origen, listos para disfrutar o regalar. Filtra por categoría o precio y añade al carrito en un toque."
+          title="La tienda"
+          subtitle="Todo el catálogo en un vistazo. Usa la búsqueda arriba si buscas algo concreto."
         />
 
-        <div className="products-toolbar">
-          <div className="products-chips" role="group" aria-label="Categoría">
-            {CATEGORY_ORDER.map((key) => (
-              <button
-                key={key}
-                type="button"
-                className={`products-chip ${category === key ? 'products-chip--active' : ''}`}
-                onClick={() => setCategory(key)}
-              >
-                {CATEGORY_LABELS[key]}
-              </button>
-            ))}
-          </div>
-
-          <div className="products-filters-row">
-            <label className="products-select-wrap">
-              <span className="products-select-label">Orden</span>
-              <select
-                className="products-select"
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                aria-label="Ordenar productos"
-              >
-                <option value="default">Orden del catálogo</option>
-                <option value="price-asc">Precio: menor a mayor</option>
-                <option value="price-desc">Precio: mayor a menor</option>
-                <option value="name">Nombre A–Z</option>
-              </select>
-            </label>
-
-            <label className="products-select-wrap">
-              <span className="products-select-label">{priceLabel}</span>
-              <select
-                className="products-select"
-                value={pricePreset}
-                onChange={(e) => setPricePreset(e.target.value)}
-                aria-label="Rango de precio"
-              >
-                <option value="all">Todos los precios</option>
-                <option value="low">Más accesibles</option>
-                <option value="mid">Rango medio</option>
-                <option value="high">Premium</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        {filteredSorted.length === 0 ? (
-          <p className="products-empty-filter">
-            No hay productos con estos filtros.{' '}
-            <Button type="button" variant="ghost" size="sm" onClick={resetFilters}>
-              Limpiar filtros
+        {visibleProducts.length === 0 ? (
+          <div className="products-no-results">
+            <p className="products-no-results-title">Nada coincide con «{searchQuery.trim()}»</p>
+            <p className="products-no-results-hint">Prueba otra palabra o borra la búsqueda.</p>
+            <Button type="button" variant="primary" size="md" onClick={() => setSearchQuery('')}>
+              Ver todo el catálogo
             </Button>
-          </p>
+          </div>
         ) : (
           <ul className="products-grid">
-            {filteredSorted.map((product) => {
+            {visibleProducts.map((product) => {
               const isSoldOut = product.stock === 0;
               const lowStock = !isSoldOut && product.stock > 0 && product.stock <= 3;
               const imgSrc = getProductImage(product, product._index);
@@ -245,9 +148,7 @@ export default function Products() {
 
               return (
                 <li key={product.id}>
-                  <article
-                    className={`product-card ${isSoldOut ? 'product-card--soldout' : ''}`}
-                  >
+                  <article className={`product-card ${isSoldOut ? 'product-card--soldout' : ''}`}>
                     <div className="product-card-image">
                       <img src={imgSrc} alt={product.name} />
                       <div className="product-card-badges">
@@ -287,7 +188,7 @@ export default function Products() {
                       )}
                       {!user ? (
                         <p className="product-guest-hint">
-                          Puedes armar el carrito sin cuenta. Para pagar, inicia sesión al confirmar.
+                          Sin cuenta puedes llenar la bolsa; para pagar te pediremos iniciar sesión.
                         </p>
                       ) : null}
                     </div>
@@ -298,9 +199,7 @@ export default function Products() {
           </ul>
         )}
 
-        <p className="products-help">
-          ¿No encuentras lo que buscas? Escríbenos desde contacto o prueba otra categoría.
-        </p>
+        <p className="products-help">¿Dudas? Escríbenos desde el pie de página.</p>
       </Container>
     </section>
   );

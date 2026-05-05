@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { FaRegUser, FaBars, FaTimes, FaSearch } from 'react-icons/fa';
+import {
+  FaRegUser,
+  FaTimes,
+  FaSearch,
+  FaHome,
+  FaShoppingBag,
+  FaEllipsisH,
+} from 'react-icons/fa';
 import { IoCartOutline } from 'react-icons/io5';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
@@ -7,36 +14,6 @@ import { useCatalog } from '../../context/CatalogContext.jsx';
 import CartDrawer from '../CartDrawer/CartDrawer.jsx';
 import LoginModal from '../LoginModal/LoginModal.jsx';
 import './Navbar.css';
-
-function NavbarActions({ className, cartCount, user, onCartClick, onLoginOpen, onLogout }) {
-  const badge =
-    cartCount > 0 ? (
-      <span className="badge-cart">{cartCount > 99 ? '99+' : cartCount}</span>
-    ) : null;
-  return (
-    <div className={className}>
-      <button className="button-cart" type="button" aria-label="Carrito" onClick={onCartClick}>
-        <IoCartOutline size={22} aria-hidden />
-        {badge}
-      </button>
-      {user ? (
-        <div className="navbar-user-wrap">
-          <span className="navbar-user-name" title={user.fullName || user.username}>
-            {user.fullName || user.username}
-          </span>
-          <button className="button-logout" type="button" onClick={onLogout}>
-            Salir
-          </button>
-        </div>
-      ) : (
-        <button className="button-login" type="button" onClick={onLoginOpen}>
-          <FaRegUser size={18} aria-hidden />
-          <span>Entrar</span>
-        </button>
-      )}
-    </div>
-  );
-}
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -49,7 +26,7 @@ export default function Navbar() {
   const { user, logout } = useAuth();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -60,6 +37,7 @@ export default function Navbar() {
   const openCart = () => {
     setIsLoginOpen(false);
     setIsMenuOpen(false);
+    setSearchOpen(false);
     setIsCartOpen(true);
   };
 
@@ -85,17 +63,17 @@ export default function Navbar() {
       </li>
       <li>
         <a href="#about" onClick={closeMenu}>
-          Nosotros
+          Historia
         </a>
       </li>
       <li>
         <a href="#products" onClick={closeMenu}>
-          Productos
+          Tienda
         </a>
       </li>
       <li>
         <a href="#opinions" onClick={closeMenu}>
-          Opiniones
+          Reseñas
         </a>
       </li>
       <li>
@@ -111,83 +89,155 @@ export default function Navbar() {
     </>
   );
 
+  const cartBadge =
+    totalQuantity > 0 ? (
+      <span className="navbar-cart-badge">{totalQuantity > 99 ? '99+' : totalQuantity}</span>
+    ) : null;
+
   return (
     <>
-      <header className={`navbar-container ${isMenuOpen ? 'navbar-container--open' : ''} ${scrolled ? 'navbar-container--scrolled' : ''}`}>
-        <div className="navbar-top">
+      <div className="navbar-ribbon">
+        <div className="navbar-ribbon-track">
+          <span>Origen Colombia</span>
+          <span aria-hidden>·</span>
+          <span>Campo → tu mesa</span>
+          <span aria-hidden>·</span>
+          <span>Empaque cuidadoso</span>
+          <span aria-hidden>·</span>
+          <span>Origen Colombia</span>
+          <span aria-hidden>·</span>
+          <span>Campo → tu mesa</span>
+          <span aria-hidden>·</span>
+          <span>Empaque cuidadoso</span>
+        </div>
+      </div>
+
+      <header
+        className={`navbar-masthead ${scrolled ? 'navbar-masthead--scrolled' : ''} ${isMenuOpen ? 'navbar-masthead--menu' : ''}`}
+      >
+        <div className="navbar-masthead-inner">
           <a className="navbar-brand" href="#inicio" onClick={closeMenu}>
-            <span className="navbar-brand-mark">ProFruit</span>
-            <span className="navbar-brand-tagline">Fruta &amp; natural</span>
+            <span className="navbar-brand-badge" aria-hidden>
+              PF
+            </span>
+            <span className="navbar-brand-text">
+              <span className="navbar-brand-mark">ProFruit</span>
+              <span className="navbar-brand-tagline">mercado en línea</span>
+            </span>
           </a>
 
           <label className="navbar-search navbar-search--desktop" htmlFor="catalog-search">
-            <span className="visually-hidden">Buscar productos</span>
-            <FaSearch className="navbar-search-icon" aria-hidden size={16} />
+            <span className="visually-hidden">Buscar en la tienda</span>
+            <FaSearch className="navbar-search-icon" aria-hidden size={15} />
             <input
               id="catalog-search"
               type="search"
               className="navbar-search-input"
-              placeholder="Buscar frutas, snacks…"
+              placeholder="¿Qué te antoja hoy?"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               autoComplete="off"
             />
+            {searchQuery ? (
+              <button
+                type="button"
+                className="navbar-search-clear"
+                aria-label="Limpiar búsqueda"
+                onClick={() => setSearchQuery('')}
+              >
+                ×
+              </button>
+            ) : null}
           </label>
 
-          <nav className="navbar-links navbar-links--desktop" aria-label="Principal">
-            <ul className="navbar-menu">{navLinks}</ul>
+          <nav className="navbar-links-desktop" aria-label="Secciones">
+            <ul className="navbar-pills">{navLinks}</ul>
           </nav>
 
-          <div className="navbar-tools">
+          <div className="navbar-actions-row">
             <button
               type="button"
               className="navbar-icon-btn navbar-search-toggle"
               aria-expanded={searchOpen}
               aria-controls="navbar-search-mobile"
               aria-label={searchOpen ? 'Cerrar búsqueda' : 'Buscar'}
-              onClick={() => setSearchOpen((v) => !v)}
+              onClick={() => {
+                setSearchOpen((v) => !v);
+                closeMenu();
+              }}
             >
-              <FaSearch size={20} />
+              <FaSearch size={18} />
             </button>
-
-            <NavbarActions
-              className="navbar-actions navbar-actions--desktop"
-              cartCount={totalQuantity}
-              user={user}
-              onCartClick={openCart}
-              onLoginOpen={openLogin}
-              onLogout={handleLogout}
-            />
 
             <button
               type="button"
-              className="navbar-icon-btn navbar-hamburger"
-              aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
-              aria-expanded={isMenuOpen}
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="navbar-cart-cta"
+              onClick={openCart}
+              aria-label={`Tu bolsa${totalQuantity ? `, ${totalQuantity} productos` : ', vacía'}`}
             >
-              {isMenuOpen ? <FaTimes size={22} /> : <FaBars size={22} />}
+              <IoCartOutline size={22} aria-hidden />
+              <span className="navbar-cart-label">Bolsa</span>
+              {cartBadge}
             </button>
+
+            {user ? (
+              <div className="navbar-account navbar-account--desktop">
+                <span className="navbar-account-name" title={user.fullName || user.username}>
+                  {user.fullName || user.username}
+                </span>
+                <button className="navbar-btn-ghost" type="button" onClick={handleLogout}>
+                  Salir
+                </button>
+              </div>
+            ) : (
+              <button className="navbar-btn-account navbar-btn-account--desktop" type="button" onClick={openLogin}>
+                <FaRegUser size={17} aria-hidden />
+                <span>Cuenta</span>
+              </button>
+            )}
           </div>
         </div>
 
         <div
-          id="navbar-mobile-panel"
-          className={`navbar-mobile-panel ${isMenuOpen ? 'navbar-mobile-panel--open' : ''}`}
+          id="navbar-flyout"
+          className={`navbar-flyout ${isMenuOpen ? 'navbar-flyout--open' : ''}`}
+          hidden={!isMenuOpen}
         >
+          <div className="navbar-flyout-head">
+            <span className="navbar-flyout-title">Menú</span>
+            <button
+              type="button"
+              className="navbar-icon-btn"
+              aria-label="Cerrar menú"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <FaTimes size={20} />
+            </button>
+          </div>
           <nav aria-label="Móvil">
-            <ul className="navbar-menu navbar-menu--stack">{navLinks}</ul>
+            <ul className="navbar-flyout-list">{navLinks}</ul>
           </nav>
-          <NavbarActions
-            className="navbar-actions navbar-actions--mobile"
-            cartCount={totalQuantity}
-            user={user}
-            onCartClick={openCart}
-            onLoginOpen={openLogin}
-            onLogout={handleLogout}
-          />
+          <div className="navbar-flyout-footer">
+            {user ? (
+              <>
+                <p className="navbar-flyout-user">{user.fullName || user.username}</p>
+                <button type="button" className="navbar-btn-ghost navbar-btn-ghost--block" onClick={handleLogout}>
+                  Cerrar sesión
+                </button>
+              </>
+            ) : (
+              <button type="button" className="navbar-btn-account navbar-btn-account--block" onClick={openLogin}>
+                <FaRegUser aria-hidden />
+                Iniciar sesión o registrarse
+              </button>
+            )}
+          </div>
         </div>
       </header>
+
+      {isMenuOpen ? (
+        <button type="button" className="navbar-overlay" aria-label="Cerrar menú" onClick={closeMenu} />
+      ) : null}
 
       <div
         id="navbar-search-mobile"
@@ -200,13 +250,54 @@ export default function Navbar() {
             id="catalog-search-mobile"
             type="search"
             className="navbar-search-input"
-            placeholder="Buscar productos…"
+            placeholder="Buscar en la tienda…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             autoComplete="off"
           />
+          {searchQuery ? (
+            <button
+              type="button"
+              className="navbar-search-clear"
+              aria-label="Limpiar"
+              onClick={() => setSearchQuery('')}
+            >
+              ×
+            </button>
+          ) : null}
         </label>
       </div>
+
+      <nav className="navbar-dock" aria-label="Accesos rápidos móvil">
+        <a className="navbar-dock-item" href="#inicio" onClick={closeMenu}>
+          <FaHome size={22} aria-hidden />
+          <span>Inicio</span>
+        </a>
+        <a className="navbar-dock-item" href="#products" onClick={closeMenu}>
+          <FaShoppingBag size={20} aria-hidden />
+          <span>Tienda</span>
+        </a>
+        <button type="button" className="navbar-dock-item navbar-dock-item--cart" onClick={openCart}>
+          <span className="navbar-dock-cart-wrap">
+            <IoCartOutline size={26} aria-hidden />
+            {cartBadge ? <span className="navbar-dock-badge">{totalQuantity > 99 ? '99+' : totalQuantity}</span> : null}
+          </span>
+          <span>Bolsa</span>
+        </button>
+        <button
+          type="button"
+          className={`navbar-dock-item ${isMenuOpen ? 'navbar-dock-item--active' : ''}`}
+          aria-expanded={isMenuOpen}
+          aria-controls="navbar-flyout"
+          onClick={() => {
+            setSearchOpen(false);
+            setIsMenuOpen((v) => !v);
+          }}
+        >
+          <FaEllipsisH size={22} aria-hidden />
+          <span>Más</span>
+        </button>
+      </nav>
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} onRequestLogin={openLogin} />
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />

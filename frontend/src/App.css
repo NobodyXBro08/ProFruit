@@ -1,8 +1,14 @@
-/* Raíz de la app: una sola columna bajo el navbar fijo */
+/* Raíz de la app: espacio extra en móvil por barra inferior */
 .app-root {
   min-height: 100vh;
 }
 
 .app-main {
   display: block;
+}
+
+@media (max-width: 899px) {
+  .app-root {
+    padding-bottom: calc(var(--navbar-dock-height, 4.25rem) + env(safe-area-inset-bottom, 0px));
+  }
 }

@@ -1,29 +1,38 @@
 import React from 'react';
 import './Footer.css';
 import { FaFacebookF, FaInstagram, FaTwitter } from 'react-icons/fa';
-import { FiPhone, FiMail, FiMapPin, FiShield } from 'react-icons/fi';
+import { FiPhone, FiMail, FiMapPin, FiArrowUpRight } from 'react-icons/fi';
 import Container from '../ui/Container.jsx';
 
-/**
- * Pie de página: confianza, contacto y enlaces por ancla.
- */
 export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
     <footer className="footer" id="contact">
+      <span className="footer-watermark" aria-hidden>
+        PF
+      </span>
       <Container className="footer-inner">
-        <div className="footer-top">
-          <div className="footer-col footer-col-main">
-            <h3 className="footer-title">ProFruit</h3>
-            <p className="footer-text">
-              Empresa colombiana de fruta y productos naturales. Trabajamos con campesinos y aliados de
-              confianza para llevar sabor real a tu hogar.
+        <div className="footer-hero">
+          <h2 className="footer-hero-title">
+            Hablemos
+            <span className="footer-hero-dot">.</span>
+          </h2>
+          <p className="footer-hero-text">
+            Un mensaje basta. Te leemos rápido: pedidos raros, mayoreo, o solo saludar al equipo.
+          </p>
+          <a className="footer-hero-mail" href="mailto:info@profruit.co">
+            info@profruit.co
+            <FiArrowUpRight aria-hidden />
+          </a>
+        </div>
+
+        <div className="footer-grid">
+          <div className="footer-card">
+            <h3 className="footer-card-title">ProFruit</h3>
+            <p className="footer-card-text">
+              Fruta y natural desde Colombia. Sin cuentos de laboratorio: campo, gente y sabor.
             </p>
-            <div className="footer-trust">
-              <FiShield className="footer-trust-icon" aria-hidden />
-              <span>Envíos cuidados · origen transparente</span>
-            </div>
             <div className="footer-social">
               <a
                 href="https://facebook.com"
@@ -55,8 +64,8 @@ export default function Footer() {
             </div>
           </div>
 
-          <div className="footer-col">
-            <h4 className="footer-heading">Contáctanos</h4>
+          <div className="footer-card footer-card--accent">
+            <h4 className="footer-card-label">Línea directa</h4>
             <ul className="footer-list">
               <li>
                 <FiPhone className="footer-icon" aria-hidden />
@@ -77,39 +86,32 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div className="footer-col">
-            <h4 className="footer-heading">Enlaces</h4>
+          <nav className="footer-card" aria-label="Pie">
+            <h4 className="footer-card-label">Saltar a</h4>
             <ul className="footer-links">
               <li>
                 <a href="#inicio">Inicio</a>
               </li>
               <li>
-                <a href="#about">Nosotros</a>
+                <a href="#about">Historia</a>
               </li>
               <li>
-                <a href="#products">Productos</a>
+                <a href="#products">Tienda</a>
               </li>
               <li>
-                <a href="#opinions">Opiniones</a>
+                <a href="#opinions">Reseñas</a>
               </li>
               <li>
                 <a href="#jobs">Aliados</a>
               </li>
-              <li>
-                <a href="#contact">Contacto</a>
-              </li>
             </ul>
-          </div>
+          </nav>
         </div>
 
-        <hr className="footer-divider" />
-
         <div className="footer-bottom">
-          <p className="footer-copy">
-            © {year} ProFruit. Todos los derechos reservados.
-          </p>
+          <p className="footer-copy">© {year} ProFruit — Hecho con hambre honesta.</p>
           <div className="footer-legal">
-            <a href="#contact">Términos y condiciones</a>
+            <a href="#contact">Términos</a>
             <span aria-hidden>·</span>
             <a href="#contact">Privacidad</a>
           </div>

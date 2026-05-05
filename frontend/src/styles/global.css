@@ -39,29 +39,19 @@ code {
 #opinions,
 #jobs,
 #contact {
-  scroll-margin-top: 5.75rem;
+  scroll-margin-top: 6.75rem;
 }
 
 #inicio {
   scroll-margin-top: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 899px) {
   #about,
   #products,
   #opinions,
   #jobs,
   #contact {
-    scroll-margin-top: 4.5rem;
-  }
-}
-
-@media (max-width: 380px) {
-  #about,
-  #products,
-  #opinions,
-  #jobs,
-  #contact {
-    scroll-margin-top: 4rem;
+    scroll-margin-top: 6.5rem;
   }
 }

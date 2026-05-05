@@ -83,6 +83,7 @@
 
   --background: var(--color-surface);
   --navbar-height: 4.25rem;
+  --navbar-dock-height: 4.25rem;
 
   /* Compat tamaños antiguos (evita romper CSS legacy de un golpe) */
   --size-extrasmall: 10px;
