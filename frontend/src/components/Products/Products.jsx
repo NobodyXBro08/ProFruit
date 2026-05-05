@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import { useCatalog } from '../../context/CatalogContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
+import { useLoginModal } from '../../context/LoginModalContext.jsx';
 import Container from '../ui/Container.jsx';
 import SectionHeader from '../ui/SectionHeader.jsx';
 import Badge from '../ui/Badge.jsx';
@@ -26,6 +27,7 @@ export default function Products() {
   const { user } = useAuth();
   const { addToCart } = useCart();
   const { showToast } = useToast();
+  const { openLogin } = useLoginModal();
   const { searchQuery, setSearchQuery } = useCatalog();
 
   useEffect(() => {
@@ -76,6 +78,11 @@ export default function Products() {
   };
 
   const handleAdd = (product, displayIndex) => {
+    if (!user) {
+      showToast('Inicia sesión para añadir productos a tu bolsa.', 'error');
+      openLogin();
+      return;
+    }
     const img = getProductImage(product, displayIndex);
     addToCart(product, img);
     showToast(`«${product.name}» añadido al carrito`);
@@ -174,6 +181,19 @@ export default function Products() {
                         <Button variant="secondary" size="md" className="product-btn-full" disabled>
                           No disponible
                         </Button>
+                      ) : !user ? (
+                        <Button
+                          variant="secondary"
+                          size="md"
+                          className="product-btn-full"
+                          type="button"
+                          onClick={() => {
+                            showToast('Necesitas una cuenta para comprar.', 'error');
+                            openLogin();
+                          }}
+                        >
+                          Inicia sesión para comprar
+                        </Button>
                       ) : (
                         <Button
                           variant="primary"
@@ -186,11 +206,6 @@ export default function Products() {
                           <span>Añadir al carrito</span>
                         </Button>
                       )}
-                      {!user ? (
-                        <p className="product-guest-hint">
-                          Sin cuenta puedes llenar la bolsa; para pagar te pediremos iniciar sesión.
-                        </p>
-                      ) : null}
                     </div>
                   </article>
                 </li>

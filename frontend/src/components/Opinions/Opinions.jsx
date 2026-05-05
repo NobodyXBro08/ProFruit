@@ -38,57 +38,38 @@ const testimonials = [
   },
 ];
 
-const cities = ['Bogotá', 'Medellín', 'Cali', 'Cartagena', 'Barranquilla', 'Bucaramanga', 'Pereira', 'Manizales'];
-
 export default function Opinions() {
   return (
     <section className="opinions" id="opinions">
-      <div className="opinions-marquee-wrap" aria-hidden>
-        <div className="opinions-marquee">
-          {[...cities, ...cities].map((city, i) => (
-            <span key={`${city}-${i}`} className="opinions-marquee-item">
-              {city}
-            </span>
-          ))}
-        </div>
-      </div>
-
       <div className="opinions-inner">
         <header className="opinions-head">
-          <span className="opinions-kicker">Voces reales · 0 Photoshop</span>
+          <span className="opinions-kicker">Reseñas</span>
           <h2 className="opinions-title">
-            Fans
-            <br />
-            <span className="opinions-title-accent">de verdad.</span>
+            Lo que dicen <span className="opinions-title-accent">en casa</span>
           </h2>
           <p className="opinions-lead">
-            Historias cortas, sin plantillas rancias. Así suena la gente cuando el sabor llega y se queda.
+            Opiniones de clientes reales. Sin ruido: solo sabor y servicio.
           </p>
         </header>
 
         <div className="opinions-stats">
           <div className="opinions-stat">
             <span className="opinions-stat-value">4.9</span>
-            <span className="opinions-stat-label">satisfacción media</span>
+            <span className="opinions-stat-label">Nota media</span>
           </div>
           <div className="opinions-stat opinions-stat--accent">
             <span className="opinions-stat-value">+12k</span>
-            <span className="opinions-stat-label">bolsas felices (meta)</span>
+            <span className="opinions-stat-label">Pedidos (meta)</span>
           </div>
           <div className="opinions-stat">
-            <span className="opinions-stat-value">∞</span>
-            <span className="opinions-stat-label">ganas de repetir</span>
+            <span className="opinions-stat-value">4</span>
+            <span className="opinions-stat-label">Ciudades</span>
           </div>
         </div>
 
         <div className="opinions-rail" role="list">
-          {testimonials.map((item, index) => (
-            <article
-              key={item.id}
-              className={`opinion-card opinion-card--${index % 3}`}
-              role="listitem"
-              style={{ '--opinion-rotate': `${(index % 2 === 0 ? -1 : 1) * (1.2 + index * 0.35)}deg` }}
-            >
+          {testimonials.map((item) => (
+            <article key={item.id} className="opinion-card" role="listitem">
               <FaQuoteLeft className="opinion-quote-icon" aria-hidden />
               <div className="opinion-stars">
                 <StarsFilled count={item.rating} />

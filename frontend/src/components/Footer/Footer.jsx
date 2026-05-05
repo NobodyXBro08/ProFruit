@@ -9,9 +9,6 @@ export default function Footer() {
 
   return (
     <footer className="footer" id="contact">
-      <span className="footer-watermark" aria-hidden>
-        PF
-      </span>
       <Container className="footer-inner">
         <div className="footer-hero">
           <h2 className="footer-hero-title">

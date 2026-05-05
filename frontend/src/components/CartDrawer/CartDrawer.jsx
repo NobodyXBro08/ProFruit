@@ -172,15 +172,27 @@ export default function CartDrawer({ isOpen, onClose, onRequestLogin }) {
               <div className="cart-drawer-empty-icon" aria-hidden>
                 <FaLeaf />
               </div>
-              <h3 className="cart-drawer-empty-title">Aquí va todo lo rico que elijas</h3>
+              <h3 className="cart-drawer-empty-title">Tu bolsa está vacía</h3>
               <p className="cart-drawer-empty-text">
-                Toca un producto en la tienda y pulsa <strong>Añadir al carrito</strong>. Volverás aquí y verás el
-                resumen claro antes de pagar.
+                {user ? (
+                  <>
+                    Ve a la tienda y pulsa <strong>Añadir al carrito</strong> en los productos que quieras.
+                  </>
+                ) : (
+                  <>
+                    <strong>Inicia sesión</strong> para poder añadir productos. Luego vuelve aquí y confirma tu pedido.
+                  </>
+                )}
               </p>
               <Button type="button" variant="primary" size="md" className="cart-drawer-empty-cta" onClick={goShop}>
                 Ir a la tienda
                 <FaArrowRight aria-hidden />
               </Button>
+              {!user ? (
+                <Button type="button" variant="secondary" size="md" className="cart-drawer-empty-cta" onClick={() => onRequestLogin?.()}>
+                  Iniciar sesión
+                </Button>
+              ) : null}
             </div>
           ) : null}
 

@@ -12,11 +12,11 @@
 
   /* Naturaleza / superficies */
   --color-leaf: #40916c;
-  --color-surface: #fafbf9;
+  --color-surface: #ffffff;
   --color-surface-elevated: #ffffff;
-  --color-surface-warm: #f4f9f4;
-  --color-border: rgba(18, 72, 28, 0.12);
-  --color-border-strong: rgba(18, 72, 28, 0.22);
+  --color-surface-warm: #f6f7f6;
+  --color-border: rgba(18, 72, 28, 0.1);
+  --color-border-strong: rgba(18, 72, 28, 0.18);
 
   /* Heredados / secundarios */
   --darkGreen: #12481c;

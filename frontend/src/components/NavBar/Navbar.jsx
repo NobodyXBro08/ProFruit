@@ -11,19 +11,19 @@ import { IoCartOutline } from 'react-icons/io5';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import { useCatalog } from '../../context/CatalogContext.jsx';
+import { useLoginModal } from '../../context/LoginModalContext.jsx';
 import CartDrawer from '../CartDrawer/CartDrawer.jsx';
-import LoginModal from '../LoginModal/LoginModal.jsx';
 import './Navbar.css';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { searchQuery, setSearchQuery } = useCatalog();
   const { totalQuantity, clearCart } = useCart();
   const { user, logout } = useAuth();
+  const { openLogin } = useLoginModal();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -35,16 +35,9 @@ export default function Navbar() {
   const closeMenu = () => setIsMenuOpen(false);
 
   const openCart = () => {
-    setIsLoginOpen(false);
-    setIsMenuOpen(false);
+    closeMenu();
     setSearchOpen(false);
     setIsCartOpen(true);
-  };
-
-  const openLogin = () => {
-    setIsCartOpen(false);
-    closeMenu();
-    setIsLoginOpen(true);
   };
 
   const handleLogout = () => {
@@ -97,19 +90,9 @@ export default function Navbar() {
   return (
     <>
       <div className="navbar-ribbon">
-        <div className="navbar-ribbon-track">
-          <span>Origen Colombia</span>
-          <span aria-hidden>·</span>
-          <span>Campo → tu mesa</span>
-          <span aria-hidden>·</span>
-          <span>Empaque cuidadoso</span>
-          <span aria-hidden>·</span>
-          <span>Origen Colombia</span>
-          <span aria-hidden>·</span>
-          <span>Campo → tu mesa</span>
-          <span aria-hidden>·</span>
-          <span>Empaque cuidadoso</span>
-        </div>
+        <p className="navbar-ribbon-text">
+          Origen Colombia · Campo a tu mesa · Empaque cuidadoso
+        </p>
       </div>
 
       <header
@@ -133,7 +116,7 @@ export default function Navbar() {
               id="catalog-search"
               type="search"
               className="navbar-search-input"
-              placeholder="¿Qué te antoja hoy?"
+              placeholder="Buscar productos…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               autoComplete="off"
@@ -250,7 +233,7 @@ export default function Navbar() {
             id="catalog-search-mobile"
             type="search"
             className="navbar-search-input"
-            placeholder="Buscar en la tienda…"
+            placeholder="Buscar productos…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             autoComplete="off"
@@ -300,7 +283,6 @@ export default function Navbar() {
       </nav>
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} onRequestLogin={openLogin} />
-      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
     </>
   );
 }
