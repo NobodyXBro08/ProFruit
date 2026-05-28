@@ -54,7 +54,10 @@ export default function CartDrawer({ isOpen, onClose, onRequestLogin }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || data.message || 'No se pudo procesar el pago.');
+        const base = data.error || data.message || 'No se pudo procesar el pago.';
+        const extra =
+          typeof data.details === 'string' && data.details.trim() ? ` (${data.details.trim()})` : '';
+        throw new Error(`${base}${extra}`);
       }
       setLastOrder((prev) =>
         prev && prev.id === orderId ? { ...prev, status: 'paid' } : prev,

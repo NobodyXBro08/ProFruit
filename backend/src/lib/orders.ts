@@ -130,7 +130,7 @@ export async function deductStockForConfirmedOrder(conn: PoolConnection, orderId
       [qty, qty, pid, qty, qty]
     );
     if (upd.affectedRows !== 1) {
-      throw new OrderError(`Inventario inconsistente para el producto ${pid}.`, 500);
+      throw new OrderError(`Inventario inconsistente para el producto ${pid}.`, 409);
     }
   }
 }
@@ -152,8 +152,9 @@ export async function finalizePaidOrder(orderId: number): Promise<void> {
     await deductStockForConfirmedOrder(conn, orderId);
 
     await conn.query<ResultSetHeader>(
-      "INSERT INTO payments (order_id, amount, status) VALUES (?, ?, ?)",
-      [orderId, orderTotal, "paid"]
+      `INSERT INTO payments (order_id, provider, amount, currency, status)
+       VALUES (?, 'manual', ?, 'COP', 'paid')`,
+      [orderId, orderTotal]
     );
 
     await conn.query("UPDATE orders SET status = 'paid' WHERE id = ?", [orderId]);

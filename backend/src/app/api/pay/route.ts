@@ -118,16 +118,23 @@ export async function POST(request: Request) {
       await deductStockForConfirmedOrder(conn, Number(order.id));
 
       await conn.query(
-        "INSERT INTO payments (order_id, amount, status) VALUES (?, ?, ?)",
-        [order.id, Number(order.total), "completed"]
+        `INSERT INTO payments (order_id, provider, amount, currency, status)
+         VALUES (?, 'manual', ?, 'COP', 'completed')`,
+        [order.id, Number(order.total)]
       );
       await conn.query("UPDATE orders SET status = 'paid' WHERE id = ?", [order.id]);
 
       await conn.commit();
     } catch (e) {
-      await conn.rollback();
-      console.error("PAY DB:", e);
-      throw e;
+      try {
+        await conn.rollback();
+      } catch {
+        /* conexión ya cerrada */
+      }
+      if (e instanceof OrderError) throw e;
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("PAY DB:", msg);
+      throw new OrderError(`Error al confirmar el pago: ${msg}`, 500);
     } finally {
       conn.release();
     }
@@ -203,6 +210,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode, headers: corsHeaders });
     }
     console.error("PAY ERROR:", error);
-    return NextResponse.json({ error: "Error interno del servidor." }, { status: 500, headers: corsHeaders });
+    const details = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { error: "Error interno del servidor.", details },
+      { status: 500, headers: corsHeaders }
+    );
   }
 }
