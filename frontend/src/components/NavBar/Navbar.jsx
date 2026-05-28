@@ -12,6 +12,7 @@ import { useCart } from '../../context/CartContext.jsx';
 import { useCatalog } from '../../context/CatalogContext.jsx';
 import { useLoginModal } from '../../context/LoginModalContext.jsx';
 import { useCartUi } from '../../context/CartUiContext.jsx';
+import ProFruitLogo from '../../assets/images/ProFruit.png';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -88,9 +89,13 @@ export default function Navbar() {
       >
         <div className="navbar-masthead-inner">
           <a className="navbar-brand" href="#inicio" onClick={closeMenu}>
-            <span className="navbar-brand-badge" aria-hidden>
-              PF
-            </span>
+            <img
+              className="navbar-brand-logo"
+              src={ProFruitLogo}
+              alt="ProFruit"
+              width={120}
+              height={40}
+            />
             <span className="navbar-brand-text">
               <span className="navbar-brand-mark">ProFruit</span>
               <span className="navbar-brand-tagline">mercado en línea</span>

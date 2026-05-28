@@ -41,6 +41,46 @@ function isResendSandboxRecipient403(err: unknown): boolean {
   return (e?.statusCode === 403 || msg.includes("403")) && msg.includes("testing emails");
 }
 
+function resolveAdminEmail(): string {
+  const raw =
+    process.env.RESEND_ADMIN_EMAIL?.trim() || process.env.RESEND_TEST_INBOX?.trim() || "";
+  return raw ? normalizeRecipientEmail(raw) : "";
+}
+
+type SendOutcome = { sent: boolean; error?: unknown };
+
+async function sendViaResend(
+  resend: Resend,
+  from: string,
+  to: string,
+  subject: string,
+  text: string,
+  sandboxFallback: boolean
+): Promise<SendOutcome> {
+  const dispatch = (recipient: string, body: string) =>
+    resend.emails.send({
+      from,
+      to: [recipient],
+      subject,
+      text: body,
+    });
+
+  let { error } = await dispatch(to, text);
+  if (!error) return { sent: true };
+
+  if (sandboxFallback && isResendSandboxRecipient403(error)) {
+    const msg = String((error as ResendErr).message || "");
+    const allowed = parseSandboxAllowedEmail(msg);
+    if (allowed && allowed !== to) {
+      const note = `${text}\n\n(Resend modo prueba: no se pudo enviar a ${to}; copia en bandeja verificada.)`;
+      ({ error } = await dispatch(allowed, note));
+      if (!error) return { sent: true };
+    }
+  }
+
+  return { sent: false, error };
+}
+
 export async function POST(request: Request) {
   try {
     const raw = await readJsonBody(request);
@@ -117,60 +157,86 @@ export async function POST(request: Request) {
     const resend = new Resend(apiKey);
     const from = process.env.RESEND_FROM?.trim() || "onboarding@resend.dev";
     const customerEmail = normalizeRecipientEmail(String(order.email || ""));
-    const testInbox = process.env.RESEND_TEST_INBOX?.trim()
-      ? normalizeRecipientEmail(process.env.RESEND_TEST_INBOX)
-      : "";
+    const adminEmail = resolveAdminEmail();
 
-    const baseText = `Tu pedido #${order.id} fue confirmado. Total: ${order.total}.`;
+    const customerText = `Tu pedido #${order.id} fue confirmado. Total: ${order.total}.`;
+    const adminText = `Nuevo pago confirmado.\n\nPedido: #${order.id}\nTotal: ${order.total}\nCliente: ${customerEmail}`;
 
-    const sendOnce = (to: string, text: string) =>
-      resend.emails.send({
-        from,
-        to: [to],
-        subject: "Confirmación de compra",
-        text,
-      });
+    console.log(
+      "PAY Resend: cliente =",
+      customerEmail,
+      "| admin =",
+      adminEmail || "(no configurado)"
+    );
 
-    let primaryTo = customerEmail;
-    let primaryText = baseText;
-    if (testInbox) {
-      primaryTo = testInbox;
-      primaryText = `${baseText}\n\n(Prueba Resend: el correo del usuario en la cuenta es ${customerEmail})`;
-    }
+    const customerOutcome = await sendViaResend(
+      resend,
+      from,
+      customerEmail,
+      "Confirmación de compra",
+      customerText,
+      true
+    );
 
-    console.log("PAY Resend: destinatario primario =", primaryTo, "| email en pedido (users) =", customerEmail);
-
-    let { error: emailError } = await sendOnce(primaryTo, primaryText);
-
-    if (emailError && isResendSandboxRecipient403(emailError) && !testInbox) {
-      const msg = String((emailError as ResendErr).message || "");
-      const allowed = parseSandboxAllowedEmail(msg);
-      if (allowed && allowed !== primaryTo) {
-        const forwarded = `${baseText}\n\n(Prueba Resend: reenviado a tu bandeja verificada. Cliente en BD: ${customerEmail})`;
-        ({ error: emailError } = await sendOnce(allowed, forwarded));
+    let adminOutcome: SendOutcome = { sent: !adminEmail };
+    if (adminEmail) {
+      if (adminEmail === customerEmail) {
+        adminOutcome = customerOutcome;
+      } else {
+        adminOutcome = await sendViaResend(
+          resend,
+          from,
+          adminEmail,
+          `Nuevo pago — pedido #${order.id}`,
+          adminText,
+          false
+        );
       }
     }
 
-    if (emailError) {
-      console.error("PAY Resend:", emailError);
+    if (!customerOutcome.sent) {
+      console.error("PAY Resend (cliente):", customerOutcome.error);
+    }
+    if (adminEmail && !adminOutcome.sent) {
+      console.error("PAY Resend (admin):", adminOutcome.error);
+    }
+
+    const customerOk = customerOutcome.sent;
+    const adminOk = adminOutcome.sent;
+    const allOk = customerOk && adminOk;
+
+    if (!allOk) {
+      const parts: string[] = ["Pago registrado."];
+      if (!customerOk) parts.push("No se pudo enviar la confirmación al cliente.");
+      if (adminEmail && !adminOk) parts.push("No se pudo enviar la notificación al administrador.");
+      if (!customerOk) {
+        parts.push(
+          "En Resend (modo prueba) verifica un dominio o usa RESEND_ADMIN_EMAIL con tu correo de cuenta."
+        );
+      }
       return NextResponse.json(
         {
           success: true,
-          message:
-            "Pago registrado; no se pudo enviar el correo. En Resend (modo prueba) define RESEND_TEST_INBOX=tu_correo_de_cuenta o verifica un dominio en resend.com/domains.",
+          message: parts.join(" "),
           emailSent: false,
+          emailSentToCustomer: customerOk,
+          emailSentToAdmin: adminOk,
         },
         { status: 200, headers: corsHeaders }
       );
     }
 
+    const message = adminEmail
+      ? "Pago realizado. Confirmación enviada al cliente y notificación al administrador."
+      : "Pago realizado y confirmación enviada al cliente.";
+
     return NextResponse.json(
       {
         success: true,
-        message: testInbox
-          ? "Pago realizado. Correo enviado a RESEND_TEST_INBOX (modo prueba)."
-          : "Pago realizado y correo enviado",
+        message,
         emailSent: true,
+        emailSentToCustomer: true,
+        emailSentToAdmin: adminOk,
       },
       { status: 200, headers: corsHeaders }
     );

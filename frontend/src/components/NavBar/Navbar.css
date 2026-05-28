@@ -83,17 +83,13 @@
   flex-shrink: 0;
 }
 
-.navbar-brand-badge {
-  width: 2.5rem;
+.navbar-brand-logo {
   height: 2.5rem;
-  border-radius: 12px;
-  background: var(--color-brand);
-  color: var(--white);
-  font-weight: 800;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: auto;
+  max-width: 7.5rem;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .navbar-brand-text {
