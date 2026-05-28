@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2";
+import { Resend } from "resend";
 import { pool } from "@/lib/db";
 import { corsHeaders, corsOptionsResponse } from "@/lib/cors";
 import { readJsonBody } from "@/lib/http";
 import { deductStockForConfirmedOrder, OrderError } from "@/lib/orders";
-import { isSmtpConfigured, normalizeEmail, sendBasicMail, type MailResult } from "@/lib/mailer";
-import { normalizeRecipientEmail, sendResendPayNotification } from "@/lib/resendPay";
 
 export function OPTIONS() {
   return corsOptionsResponse();
@@ -20,17 +19,46 @@ function parseOrderId(body: unknown): number | null {
   return n;
 }
 
-function buildCustomerSmtpText(orderId: number, total: unknown, email: string): string {
-  return [
-    "Hola,",
-    "",
-    `Confirmamos tu pedido #${orderId} en ProFruit.`,
-    `Total: ${total}.`,
-    "",
-    "Pronto te enviaremos novedades sobre el envío.",
-    "",
-    "Equipo ProFruit",
-  ].join("\n");
+function userEmail(row: RowDataPacket): string {
+  const raw = typeof row.email === "string" ? row.email : "";
+  return raw.trim().toLowerCase();
+}
+
+/** Correo al email guardado en la cuenta (users.email del pedido). */
+async function enviarConfirmacionCliente(
+  email: string,
+  orderId: number,
+  total: unknown
+): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) return false;
+
+  try {
+    const resend = new Resend(apiKey);
+    const { error } = await resend.emails.send({
+      from: process.env.RESEND_FROM?.trim() || "onboarding@resend.dev",
+      to: [email],
+      subject: "Confirmación de tu pedido - ProFruit",
+      text: [
+        "Hola,",
+        "",
+        `Tu pedido #${orderId} quedó confirmado.`,
+        `Total: ${total}.`,
+        "",
+        "Pronto te enviaremos novedades sobre el envío.",
+        "",
+        "Gracias por comprar en ProFruit.",
+      ].join("\n"),
+    });
+    if (error) {
+      console.error("Email cliente:", error);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("Email cliente:", e);
+    return false;
+  }
 }
 
 export async function POST(request: Request) {
@@ -41,15 +69,6 @@ export async function POST(request: Request) {
     const orderId = parseOrderId(raw.body);
     if (orderId === null) {
       return NextResponse.json({ error: "order_id inválido o ausente." }, { status: 400, headers: corsHeaders });
-    }
-
-    const apiKey = process.env.RESEND_API_KEY?.trim();
-    if (!apiKey) {
-      console.error("PAY: RESEND_API_KEY no definida.");
-      return NextResponse.json(
-        { error: "Configuración del servidor incompleta (RESEND_API_KEY)." },
-        { status: 503, headers: corsHeaders }
-      );
     }
 
     const conn = await pool.getConnection();
@@ -82,8 +101,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: msg }, { status: 409, headers: corsHeaders });
       }
 
-      const emailRaw = typeof order.email === "string" ? order.email : "";
-      const email = normalizeRecipientEmail(emailRaw);
+      const email = userEmail(order);
       if (!email) {
         await conn.rollback();
         return NextResponse.json({ error: "Usuario sin email." }, { status: 400, headers: corsHeaders });
@@ -106,39 +124,19 @@ export async function POST(request: Request) {
       conn.release();
     }
 
-    const orderNum = Number(order.id);
-    const customerEmail = normalizeEmail(String(order.email || ""));
+    const email = userEmail(order);
+    const emailOk = await enviarConfirmacionCliente(email, Number(order.id), order.total);
 
-    const resendResult = await sendResendPayNotification(order, apiKey);
-
-    let smtpToCustomer: MailResult = { sent: false };
-    if (isSmtpConfigured()) {
-      console.log("PAY SMTP: confirmación al cliente logueado =", customerEmail);
-      smtpToCustomer = await sendBasicMail(
-        customerEmail,
-        `ProFruit — Pedido #${orderNum} confirmado`,
-        buildCustomerSmtpText(orderNum, order.total, customerEmail)
-      );
-      if (!smtpToCustomer.sent) {
-        console.error("PAY SMTP cliente:", smtpToCustomer.error);
-      }
-    }
-
-    const body: Record<string, unknown> = {
-      success: true,
-      message: resendResult.message,
-      emailSent: resendResult.emailSent,
-      emailSentToCustomer: smtpToCustomer.sent,
-    };
-
-    if (smtpToCustomer.sent) {
-      body.message = `${resendResult.message} Confirmación enviada al correo de tu cuenta (${customerEmail}).`;
-      body.emailSentToCustomer = true;
-    } else if (isSmtpConfigured() && !smtpToCustomer.sent) {
-      body.smtpCustomerError = smtpToCustomer.error;
-    }
-
-    return NextResponse.json(body, { status: 200, headers: corsHeaders });
+    return NextResponse.json(
+      {
+        success: true,
+        message: emailOk
+          ? "Pago realizado. Te enviamos la confirmación a tu correo."
+          : "Pago realizado.",
+        emailSent: emailOk,
+      },
+      { status: 200, headers: corsHeaders }
+    );
   } catch (error) {
     if (error instanceof OrderError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode, headers: corsHeaders });
