@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2";
-import { Resend } from "resend";
 import { pool } from "@/lib/db";
 import { corsHeaders, corsOptionsResponse } from "@/lib/cors";
 import { readJsonBody } from "@/lib/http";
 import { deductStockForConfirmedOrder, OrderError } from "@/lib/orders";
+import { isMailConfigured, normalizeEmail, sendMail, type MailResult } from "@/lib/mailer";
+import { buildAdminOrderEmail, buildCustomerOrderEmail } from "@/lib/orderEmails";
+import {
+  isResendConfigured,
+  resolveResendAdminEmail,
+  sendResendEmail,
+  type ResendSendResult,
+} from "@/lib/resendMail";
 
 export function OPTIONS() {
   return corsOptionsResponse();
@@ -19,66 +26,37 @@ function parseOrderId(body: unknown): number | null {
   return n;
 }
 
-/** Trim, minúsculas y sin caracteres invisibles (Resend compara el destinatario al pie de la letra). */
-function normalizeRecipientEmail(raw: string): string {
-  return raw
-    .trim()
-    .replace(/[\u200B-\u200D\uFEFF]/g, "")
-    .toLowerCase();
+/** Email del usuario dueño del pedido (users.email vía orders.user_id), no un correo fijo. */
+function customerEmailFromOrder(row: RowDataPacket): string {
+  return normalizeEmail(typeof row.email === "string" ? row.email : "");
 }
 
-/** Resend suele incluir el correo permitido entre paréntesis en el 403 de modo prueba. */
-function parseSandboxAllowedEmail(message: string): string | null {
-  const m = message.match(/\(([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\)/);
-  return m ? normalizeRecipientEmail(m[1]) : null;
-}
+async function sendCustomerConfirmation(
+  customerEmail: string,
+  order: RowDataPacket,
+  orderId: number
+): Promise<MailResult | ResendSendResult> {
+  const mail = buildCustomerOrderEmail(orderId, order.total, customerEmail, order);
 
-type ResendErr = { statusCode?: number; message?: string; name?: string };
-
-function isResendSandboxRecipient403(err: unknown): boolean {
-  const e = err as ResendErr;
-  const msg = String(e?.message || "");
-  return (e?.statusCode === 403 || msg.includes("403")) && msg.includes("testing emails");
-}
-
-function resolveAdminEmail(): string {
-  const raw =
-    process.env.RESEND_ADMIN_EMAIL?.trim() || process.env.RESEND_TEST_INBOX?.trim() || "";
-  return raw ? normalizeRecipientEmail(raw) : "";
-}
-
-type SendOutcome = { sent: boolean; error?: unknown };
-
-async function sendViaResend(
-  resend: Resend,
-  from: string,
-  to: string,
-  subject: string,
-  text: string,
-  sandboxFallback: boolean
-): Promise<SendOutcome> {
-  const dispatch = (recipient: string, body: string) =>
-    resend.emails.send({
-      from,
-      to: [recipient],
-      subject,
-      text: body,
+  if (isMailConfigured()) {
+    return sendMail({
+      to: customerEmail,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
     });
-
-  let { error } = await dispatch(to, text);
-  if (!error) return { sent: true };
-
-  if (sandboxFallback && isResendSandboxRecipient403(error)) {
-    const msg = String((error as ResendErr).message || "");
-    const allowed = parseSandboxAllowedEmail(msg);
-    if (allowed && allowed !== to) {
-      const note = `${text}\n\n(Resend modo prueba: no se pudo enviar a ${to}; copia en bandeja verificada.)`;
-      ({ error } = await dispatch(allowed, note));
-      if (!error) return { sent: true };
-    }
   }
 
-  return { sent: false, error };
+  if (isResendConfigured()) {
+    return sendResendEmail({
+      to: customerEmail,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    });
+  }
+
+  return { sent: false, error: "Sin SMTP ni Resend para el correo al cliente." };
 }
 
 export async function POST(request: Request) {
@@ -91,11 +69,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "order_id inválido o ausente." }, { status: 400, headers: corsHeaders });
     }
 
-    const apiKey = process.env.RESEND_API_KEY?.trim();
-    if (!apiKey) {
-      console.error("PAY: RESEND_API_KEY no definida.");
+    if (!isResendConfigured() && !isMailConfigured()) {
       return NextResponse.json(
-        { error: "Configuración del servidor incompleta (RESEND_API_KEY)." },
+        {
+          error:
+            "Correo no configurado. Define RESEND_API_KEY (admin) y/o SMTP_USER + SMTP_PASS (cliente con HTML).",
+        },
         { status: 503, headers: corsHeaders }
       );
     }
@@ -106,7 +85,7 @@ export async function POST(request: Request) {
       await conn.beginTransaction();
 
       const [rows] = await conn.query<RowDataPacket[]>(
-        `SELECT o.id, o.total, o.status, u.email
+        `SELECT o.id, o.total, o.status, o.user_id, u.email, u.username, u.full_name
          FROM orders o
          INNER JOIN users u ON o.user_id = u.id
          WHERE o.id = ?
@@ -130,9 +109,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: msg }, { status: 409, headers: corsHeaders });
       }
 
-      const emailRaw = typeof order.email === "string" ? order.email : "";
-      const email = normalizeRecipientEmail(emailRaw);
-      if (!email) {
+      const customerEmail = customerEmailFromOrder(order);
+      if (!customerEmail) {
         await conn.rollback();
         return NextResponse.json({ error: "Usuario sin email." }, { status: 400, headers: corsHeaders });
       }
@@ -154,66 +132,48 @@ export async function POST(request: Request) {
       conn.release();
     }
 
-    const resend = new Resend(apiKey);
-    const from = process.env.RESEND_FROM?.trim() || "onboarding@resend.dev";
-    const customerEmail = normalizeRecipientEmail(String(order.email || ""));
-    const adminEmail = resolveAdminEmail();
-
-    const customerText = `Tu pedido #${order.id} fue confirmado. Total: ${order.total}.`;
-    const adminText = `Nuevo pago confirmado.\n\nPedido: #${order.id}\nTotal: ${order.total}\nCliente: ${customerEmail}`;
+    const id = Number(order.id);
+    const customerEmail = customerEmailFromOrder(order);
+    const adminEmail = resolveResendAdminEmail();
+    const adminMail = buildAdminOrderEmail(id, order.total, customerEmail, order);
 
     console.log(
-      "PAY Resend: cliente =",
+      "PAY: correo cliente (users.email del pedido) =",
       customerEmail,
-      "| admin =",
-      adminEmail || "(no configurado)"
+      "| admin Resend =",
+      adminEmail || "(no)"
     );
 
-    const customerOutcome = await sendViaResend(
-      resend,
-      from,
-      customerEmail,
-      "Confirmación de compra",
-      customerText,
-      true
-    );
+    const customerOutcome = await sendCustomerConfirmation(customerEmail, order, id);
 
-    let adminOutcome: SendOutcome = { sent: !adminEmail };
-    if (adminEmail) {
-      if (adminEmail === customerEmail) {
-        adminOutcome = customerOutcome;
+    let adminOutcome: ResendSendResult = { sent: !adminEmail };
+    if (adminEmail && isResendConfigured()) {
+      if (adminEmail === customerEmail && customerOutcome.sent) {
+        adminOutcome = { sent: true };
       } else {
-        adminOutcome = await sendViaResend(
-          resend,
-          from,
-          adminEmail,
-          `Nuevo pago — pedido #${order.id}`,
-          adminText,
-          false
-        );
+        adminOutcome = await sendResendEmail({
+          to: adminEmail,
+          subject: adminMail.subject,
+          text: adminMail.text,
+        });
       }
-    }
-
-    if (!customerOutcome.sent) {
-      console.error("PAY Resend (cliente):", customerOutcome.error);
-    }
-    if (adminEmail && !adminOutcome.sent) {
-      console.error("PAY Resend (admin):", adminOutcome.error);
+    } else if (adminEmail && !isResendConfigured()) {
+      adminOutcome = { sent: false, error: "RESEND_API_KEY no definida para aviso al administrador." };
     }
 
     const customerOk = customerOutcome.sent;
     const adminOk = adminOutcome.sent;
-    const allOk = customerOk && adminOk;
 
-    if (!allOk) {
-      const parts: string[] = ["Pago registrado."];
-      if (!customerOk) parts.push("No se pudo enviar la confirmación al cliente.");
-      if (adminEmail && !adminOk) parts.push("No se pudo enviar la notificación al administrador.");
+    if (!customerOk) console.error("PAY correo cliente:", customerOutcome.error);
+    if (adminEmail && !adminOk) console.error("PAY Resend admin:", adminOutcome.error);
+
+    if (!customerOk || (adminEmail && !adminOk)) {
+      const parts = ["Pago registrado."];
       if (!customerOk) {
-        parts.push(
-          "En Resend (modo prueba) verifica un dominio o usa RESEND_ADMIN_EMAIL con tu correo de cuenta."
-        );
+        parts.push("No se envió la confirmación al correo del cliente.");
+        if (customerOutcome.error) parts.push(customerOutcome.error);
       }
+      if (adminEmail && !adminOk) parts.push("No se envió la notificación al administrador (Resend).");
       return NextResponse.json(
         {
           success: true,
@@ -226,14 +186,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const message = adminEmail
-      ? "Pago realizado. Confirmación enviada al cliente y notificación al administrador."
-      : "Pago realizado y confirmación enviada al cliente.";
-
     return NextResponse.json(
       {
         success: true,
-        message,
+        message: adminEmail
+          ? "Pago realizado. Confirmación al cliente y aviso al administrador enviados."
+          : "Pago realizado. Confirmación enviada al correo del cliente.",
         emailSent: true,
         emailSentToCustomer: true,
         emailSentToAdmin: adminOk,
