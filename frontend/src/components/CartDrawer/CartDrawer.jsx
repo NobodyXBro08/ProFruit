@@ -60,6 +60,9 @@ export default function CartDrawer({ isOpen, onClose, onRequestLogin }) {
         prev && prev.id === orderId ? { ...prev, status: 'paid' } : prev,
       );
       setPayMessage(data.message || 'Pago realizado.');
+      if (data.success && data.emailSentToCustomer === false && data.message) {
+        console.warn('Correo al cliente:', data.resendError || data.message);
+      }
     } catch (err) {
       setPayError(err instanceof Error ? err.message : 'Error al pagar.');
     } finally {

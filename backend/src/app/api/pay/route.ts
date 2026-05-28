@@ -19,46 +19,35 @@ function parseOrderId(body: unknown): number | null {
   return n;
 }
 
-function userEmail(row: RowDataPacket): string {
-  const raw = typeof row.email === "string" ? row.email : "";
-  return raw.trim().toLowerCase();
+function normalizeEmail(raw: string): string {
+  return raw
+    .trim()
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .toLowerCase();
 }
 
-/** Correo al email guardado en la cuenta (users.email del pedido). */
-async function enviarConfirmacionCliente(
-  email: string,
-  orderId: number,
-  total: unknown
-): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!apiKey) return false;
+function parseSandboxAllowedEmail(message: string): string | null {
+  const m = message.match(/\(([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\)/);
+  return m ? normalizeEmail(m[1]) : null;
+}
 
-  try {
-    const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from: process.env.RESEND_FROM?.trim() || "onboarding@resend.dev",
-      to: [email],
-      subject: "Confirmación de tu pedido - ProFruit",
-      text: [
-        "Hola,",
-        "",
-        `Tu pedido #${orderId} quedó confirmado.`,
-        `Total: ${total}.`,
-        "",
-        "Pronto te enviaremos novedades sobre el envío.",
-        "",
-        "Gracias por comprar en ProFruit.",
-      ].join("\n"),
-    });
-    if (error) {
-      console.error("Email cliente:", error);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    console.error("Email cliente:", e);
-    return false;
+type ResendErr = { statusCode?: number; message?: string; name?: string };
+
+function resendErrMessage(err: unknown): string {
+  if (typeof err === "object" && err !== null && "message" in err) {
+    return String((err as ResendErr).message || "");
   }
+  return String(err);
+}
+
+function isResendSandboxRecipient403(err: unknown): boolean {
+  const msg = resendErrMessage(err);
+  const e = err as ResendErr;
+  return (e?.statusCode === 403 || msg.includes("403")) && msg.includes("testing emails");
+}
+
+function buildConfirmacionText(orderId: number, total: unknown): string {
+  return `Tu pedido #${orderId} fue confirmado. Total: ${total}. Pronto te enviaremos novedades sobre el envío.`;
 }
 
 export async function POST(request: Request) {
@@ -69,6 +58,15 @@ export async function POST(request: Request) {
     const orderId = parseOrderId(raw.body);
     if (orderId === null) {
       return NextResponse.json({ error: "order_id inválido o ausente." }, { status: 400, headers: corsHeaders });
+    }
+
+    const apiKey = process.env.RESEND_API_KEY?.trim();
+    if (!apiKey) {
+      console.error("PAY: RESEND_API_KEY no definida.");
+      return NextResponse.json(
+        { error: "Configuración del servidor incompleta (RESEND_API_KEY)." },
+        { status: 503, headers: corsHeaders }
+      );
     }
 
     const conn = await pool.getConnection();
@@ -101,8 +99,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: msg }, { status: 409, headers: corsHeaders });
       }
 
-      const email = userEmail(order);
-      if (!email) {
+      const customerEmail = normalizeEmail(typeof order.email === "string" ? order.email : "");
+      if (!customerEmail) {
         await conn.rollback();
         return NextResponse.json({ error: "Usuario sin email." }, { status: 400, headers: corsHeaders });
       }
@@ -124,16 +122,82 @@ export async function POST(request: Request) {
       conn.release();
     }
 
-    const email = userEmail(order);
-    const emailOk = await enviarConfirmacionCliente(email, Number(order.id), order.total);
+    const resend = new Resend(apiKey);
+    const from = process.env.RESEND_FROM?.trim() || "onboarding@resend.dev";
+    const customerEmail = normalizeEmail(String(order.email || ""));
+    const adminInbox = process.env.RESEND_TEST_INBOX?.trim()
+      ? normalizeEmail(process.env.RESEND_TEST_INBOX)
+      : process.env.RESEND_ADMIN_EMAIL?.trim()
+        ? normalizeEmail(process.env.RESEND_ADMIN_EMAIL)
+        : "";
+
+    const orderNum = Number(order.id);
+    const text = buildConfirmacionText(orderNum, order.total);
+
+    const sendTo = async (to: string, body: string) => {
+      const result = await resend.emails.send({
+        from,
+        to: [to],
+        subject: "Confirmación de compra - ProFruit",
+        text: body,
+      });
+      return { ok: !result.error, error: result.error };
+    };
+
+    console.log("PAY Resend → cliente (users.email):", customerEmail);
+
+    let clienteOk = false;
+    let clienteError = "";
+
+    let r = await sendTo(customerEmail, text);
+    if (r.ok) {
+      clienteOk = true;
+    } else {
+      clienteError = resendErrMessage(r.error);
+      console.error("PAY Resend cliente:", clienteError);
+
+      if (isResendSandboxRecipient403(r.error)) {
+        const allowed = parseSandboxAllowedEmail(clienteError);
+        if (allowed && allowed !== customerEmail) {
+          const copia = `${text}\n\n(No se pudo enviar a ${customerEmail}; copia de prueba Resend.)`;
+          const r2 = await sendTo(allowed, copia);
+          if (r2.ok) clienteError = `Modo prueba Resend: solo permite ${allowed}. Cliente en BD: ${customerEmail}.`;
+        }
+      }
+    }
+
+    let adminOk = !adminInbox;
+    if (adminInbox && adminInbox !== customerEmail) {
+      const adminText = `${text}\n\nCorreo del cliente en la cuenta: ${customerEmail}`;
+      console.log("PAY Resend → admin:", adminInbox);
+      const ra = await sendTo(adminInbox, adminText);
+      adminOk = ra.ok;
+      if (!ra.ok) console.error("PAY Resend admin:", resendErrMessage(ra.error));
+    } else if (adminInbox === customerEmail) {
+      adminOk = clienteOk;
+    }
+
+    if (clienteOk) {
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Pago realizado. Confirmación enviada al correo de tu cuenta.",
+          emailSent: true,
+          emailSentToCustomer: true,
+        },
+        { status: 200, headers: corsHeaders }
+      );
+    }
 
     return NextResponse.json(
       {
         success: true,
-        message: emailOk
-          ? "Pago realizado. Te enviamos la confirmación a tu correo."
-          : "Pago realizado.",
-        emailSent: emailOk,
+        message: adminOk
+          ? `Pago realizado. Aviso al administrador enviado. No llegó al cliente (${customerEmail}). ${clienteError}`
+          : `Pago realizado. No se pudo enviar al correo ${customerEmail}. ${clienteError}`,
+        emailSent: adminOk,
+        emailSentToCustomer: false,
+        resendError: clienteError || undefined,
       },
       { status: 200, headers: corsHeaders }
     );
