@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2";
-import { Resend } from "resend";
 import { pool } from "@/lib/db";
 import { corsHeaders, corsOptionsResponse } from "@/lib/cors";
 import { readJsonBody } from "@/lib/http";
 import { deductStockForConfirmedOrder, OrderError } from "@/lib/orders";
+import { isSmtpConfigured, normalizeEmail, sendBasicMail, type MailResult } from "@/lib/mailer";
+import { normalizeRecipientEmail, sendResendPayNotification } from "@/lib/resendPay";
 
 export function OPTIONS() {
   return corsOptionsResponse();
@@ -19,26 +20,17 @@ function parseOrderId(body: unknown): number | null {
   return n;
 }
 
-/** Trim, minúsculas y sin caracteres invisibles (Resend compara el destinatario al pie de la letra). */
-function normalizeRecipientEmail(raw: string): string {
-  return raw
-    .trim()
-    .replace(/[\u200B-\u200D\uFEFF]/g, "")
-    .toLowerCase();
-}
-
-/** Resend suele incluir el correo permitido entre paréntesis en el 403 de modo prueba. */
-function parseSandboxAllowedEmail(message: string): string | null {
-  const m = message.match(/\(([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\)/);
-  return m ? normalizeRecipientEmail(m[1]) : null;
-}
-
-type ResendErr = { statusCode?: number; message?: string; name?: string };
-
-function isResendSandboxRecipient403(err: unknown): boolean {
-  const e = err as ResendErr;
-  const msg = String(e?.message || "");
-  return (e?.statusCode === 403 || msg.includes("403")) && msg.includes("testing emails");
+function buildCustomerSmtpText(orderId: number, total: unknown, email: string): string {
+  return [
+    "Hola,",
+    "",
+    `Confirmamos tu pedido #${orderId} en ProFruit.`,
+    `Total: ${total}.`,
+    "",
+    "Pronto te enviaremos novedades sobre el envío.",
+    "",
+    "Equipo ProFruit",
+  ].join("\n");
 }
 
 export async function POST(request: Request) {
@@ -114,66 +106,39 @@ export async function POST(request: Request) {
       conn.release();
     }
 
-    const resend = new Resend(apiKey);
-    const from = process.env.RESEND_FROM?.trim() || "onboarding@resend.dev";
-    const customerEmail = normalizeRecipientEmail(String(order.email || ""));
-    const testInbox = process.env.RESEND_TEST_INBOX?.trim()
-      ? normalizeRecipientEmail(process.env.RESEND_TEST_INBOX)
-      : "";
+    const orderNum = Number(order.id);
+    const customerEmail = normalizeEmail(String(order.email || ""));
 
-    const baseText = `Tu pedido #${order.id} fue confirmado. Total: ${order.total}.`;
+    const resendResult = await sendResendPayNotification(order, apiKey);
 
-    const sendOnce = (to: string, text: string) =>
-      resend.emails.send({
-        from,
-        to: [to],
-        subject: "Confirmación de compra",
-        text,
-      });
-
-    let primaryTo = customerEmail;
-    let primaryText = baseText;
-    if (testInbox) {
-      primaryTo = testInbox;
-      primaryText = `${baseText}\n\n(Prueba Resend: el correo del usuario en la cuenta es ${customerEmail})`;
-    }
-
-    console.log("PAY Resend: destinatario primario =", primaryTo, "| email en pedido (users) =", customerEmail);
-
-    let { error: emailError } = await sendOnce(primaryTo, primaryText);
-
-    if (emailError && isResendSandboxRecipient403(emailError) && !testInbox) {
-      const msg = String((emailError as ResendErr).message || "");
-      const allowed = parseSandboxAllowedEmail(msg);
-      if (allowed && allowed !== primaryTo) {
-        const forwarded = `${baseText}\n\n(Prueba Resend: reenviado a tu bandeja verificada. Cliente en BD: ${customerEmail})`;
-        ({ error: emailError } = await sendOnce(allowed, forwarded));
+    let smtpToCustomer: MailResult = { sent: false };
+    if (isSmtpConfigured()) {
+      console.log("PAY SMTP: confirmación al cliente logueado =", customerEmail);
+      smtpToCustomer = await sendBasicMail(
+        customerEmail,
+        `ProFruit — Pedido #${orderNum} confirmado`,
+        buildCustomerSmtpText(orderNum, order.total, customerEmail)
+      );
+      if (!smtpToCustomer.sent) {
+        console.error("PAY SMTP cliente:", smtpToCustomer.error);
       }
     }
 
-    if (emailError) {
-      console.error("PAY Resend:", emailError);
-      return NextResponse.json(
-        {
-          success: true,
-          message:
-            "Pago registrado; no se pudo enviar el correo. En Resend (modo prueba) define RESEND_TEST_INBOX=tu_correo_de_cuenta o verifica un dominio en resend.com/domains.",
-          emailSent: false,
-        },
-        { status: 200, headers: corsHeaders }
-      );
+    const body: Record<string, unknown> = {
+      success: true,
+      message: resendResult.message,
+      emailSent: resendResult.emailSent,
+      emailSentToCustomer: smtpToCustomer.sent,
+    };
+
+    if (smtpToCustomer.sent) {
+      body.message = `${resendResult.message} Confirmación enviada al correo de tu cuenta (${customerEmail}).`;
+      body.emailSentToCustomer = true;
+    } else if (isSmtpConfigured() && !smtpToCustomer.sent) {
+      body.smtpCustomerError = smtpToCustomer.error;
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: testInbox
-          ? "Pago realizado. Correo enviado a RESEND_TEST_INBOX (modo prueba)."
-          : "Pago realizado y correo enviado",
-        emailSent: true,
-      },
-      { status: 200, headers: corsHeaders }
-    );
+    return NextResponse.json(body, { status: 200, headers: corsHeaders });
   } catch (error) {
     if (error instanceof OrderError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode, headers: corsHeaders });

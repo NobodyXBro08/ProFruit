@@ -59,7 +59,12 @@ export default function CartDrawer({ isOpen, onClose, onRequestLogin }) {
       setLastOrder((prev) =>
         prev && prev.id === orderId ? { ...prev, status: 'paid' } : prev,
       );
-      setPayMessage(data.message || 'Pago realizado.');
+      const okMsg = data.message || 'Pago realizado.';
+      const warn =
+        data.success && data.emailSentToCustomer === false
+          ? ' Revisa que tu cuenta tenga un correo válido al registrarte.'
+          : '';
+      setPayMessage(`${okMsg}${warn}`);
     } catch (err) {
       setPayError(err instanceof Error ? err.message : 'Error al pagar.');
     } finally {
