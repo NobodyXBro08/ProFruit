@@ -50,13 +50,13 @@ export default function Navbar() {
         </Link>
       </li>
       <li>
-        <Link to="/#about" onClick={closeMenu}>
+        <Link to="/#historia" onClick={closeMenu}>
           Historia
         </Link>
       </li>
       <li>
         <Link to="/#products" onClick={closeMenu}>
-          Tienda
+          Productos
         </Link>
       </li>
       <li>
@@ -241,7 +241,7 @@ export default function Navbar() {
         </Link>
         <Link className="navbar-dock-item" to="/#products" onClick={closeMenu}>
           <FaShoppingBag size={20} aria-hidden />
-          <span>Tienda</span>
+          <span>Productos</span>
         </Link>
         <button
           type="button"

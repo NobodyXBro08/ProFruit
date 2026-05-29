@@ -23,7 +23,7 @@ export default function About() {
   }, []);
 
   return (
-    <section className="about" id="about">
+    <section className="about" id="inicio">
       <div className="about-bg">
         {bgImages.map((src, index) => (
           <div

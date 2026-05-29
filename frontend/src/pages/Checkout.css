@@ -212,6 +212,120 @@
   line-height: 1.5;
 }
 
+.checkout-fields {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+@media (min-width: 520px) {
+  .checkout-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .checkout-field--full {
+    grid-column: 1 / -1;
+  }
+}
+
+.checkout-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.checkout-field span {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.checkout-field input {
+  min-height: 2.75rem;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+}
+
+.checkout-field input:focus {
+  outline: 2px solid rgba(15, 118, 110, 0.35);
+  border-color: #0f766e;
+}
+
+.checkout-subsection-title {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-brand);
+}
+
+.checkout-payment-options {
+  border: none;
+  margin: 0 0 var(--space-6);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.checkout-payment-option {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--color-border);
+  cursor: pointer;
+  background: var(--white);
+  transition: border-color 0.15s ease;
+}
+
+.checkout-payment-option:has(input:checked) {
+  border-color: #0f766e;
+  background: rgba(15, 118, 110, 0.04);
+}
+
+.checkout-payment-option input {
+  margin-top: 0.2rem;
+  accent-color: #0f766e;
+}
+
+.checkout-payment-option-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.checkout-payment-option-body strong {
+  color: var(--color-brand);
+  font-size: var(--text-sm);
+}
+
+.checkout-payment-option-body small {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.checkout-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.checkout-form-actions .checkout-submit {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.checkout-order-done--success {
+  border-color: var(--color-leaf);
+}
+
 .checkout-submit,
 .checkout-pay-btn {
   width: 100%;

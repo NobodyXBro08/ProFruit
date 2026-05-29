@@ -95,9 +95,14 @@ export default function ProductDetail() {
   return (
     <div className="product-detail-page">
       <Container className="product-detail-container">
-        <Link to="/#products" className="product-detail-back">
-          <FaArrowLeft aria-hidden /> Volver al catálogo
-        </Link>
+        <div className="product-detail-nav">
+          <Link to="/" className="product-detail-back product-detail-back--primary">
+            <FaArrowLeft aria-hidden /> Volver al inicio
+          </Link>
+          <Link to="/#products" className="product-detail-back">
+            Ver productos
+          </Link>
+        </div>
 
         <article className="product-detail">
           <div className="product-detail-gallery">

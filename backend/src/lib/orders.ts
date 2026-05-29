@@ -78,9 +78,24 @@ export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedO
 
     total = Math.round(total * 100) / 100;
 
+    const shippingPayload = JSON.stringify({
+      city: input.city,
+      address: input.address,
+      line: `${input.address}, ${input.city}`,
+    });
+
     const [orderResult] = await conn.query<ResultSetHeader>(
-      "INSERT INTO orders (user_id, status, total) VALUES (?, 'pending', ?)",
-      [userId, total]
+      `INSERT INTO orders (user_id, status, total, customer_name, customer_email, customer_phone, shipping_address, notes)
+       VALUES (?, 'pending', ?, ?, ?, ?, ?, ?)`,
+      [
+        userId,
+        total,
+        input.customerName,
+        input.customerEmail,
+        input.customerPhone ?? null,
+        shippingPayload,
+        `payment_method:${input.paymentMethod}`,
+      ]
     );
 
     const orderId = Number(orderResult.insertId);
@@ -88,8 +103,8 @@ export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedO
 
     for (const line of resolvedLines) {
       await conn.query<ResultSetHeader>(
-        "INSERT INTO order_items (order_id, product_id, quantity) VALUES (?, ?, ?)",
-        [orderId, line.productId, line.quantity]
+        "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)",
+        [orderId, line.productId, line.quantity, line.unitPrice]
       );
     }
 
@@ -152,8 +167,8 @@ export async function finalizePaidOrder(orderId: number): Promise<void> {
     await deductStockForConfirmedOrder(conn, orderId);
 
     await conn.query<ResultSetHeader>(
-      "INSERT INTO payments (order_id, amount, status) VALUES (?, ?, ?)",
-      [orderId, orderTotal, "paid"]
+      "INSERT INTO payments (order_id, provider, amount, status) VALUES (?, ?, ?, ?)",
+      [orderId, "manual", orderTotal, "paid"]
     );
 
     await conn.query("UPDATE orders SET status = 'paid' WHERE id = ?", [orderId]);
