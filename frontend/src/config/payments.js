@@ -1,21 +1,13 @@
 export const PAYMENT_METHODS = [
   {
-    id: 'mercadopago',
-    label: 'Mercado Pago',
-    hint: 'Tarjeta crédito, débito o PSE. Pago seguro en línea.',
-    online: true,
-  },
-  {
-    id: 'pse',
-    label: 'PSE (transferencia bancaria)',
-    hint: 'Débito desde tu cuenta bancaria vía Mercado Pago.',
-    online: true,
+    id: 'whatsapp',
+    label: 'WhatsApp',
+    hint: 'Recibes el resumen del pedido y lo confirmas por chat con nuestro equipo.',
   },
   {
     id: 'efectivo',
     label: 'Efectivo / Contra entrega',
-    hint: 'Coordinamos el pago al recibir tu pedido (sujeto a ciudad).',
-    online: false,
+    hint: 'Pagas al recibir tu pedido. Te enviamos la confirmación por correo.',
   },
 ];
 

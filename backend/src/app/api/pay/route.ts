@@ -116,16 +116,6 @@ export async function POST(request: Request) {
       }
 
       const provider = bodyMethod ?? paymentProviderFromNotes(order.notes);
-      if (provider === "mercadopago" || provider === "pse") {
-        await conn.rollback();
-        return NextResponse.json(
-          {
-            error: "Este pedido debe pagarse con Mercado Pago en línea.",
-            useMercadoPago: true,
-          },
-          { status: 400, headers: corsHeaders }
-        );
-      }
 
       const customerEmail = normalizeEmail(
         typeof order.customer_email === "string" && order.customer_email.trim()

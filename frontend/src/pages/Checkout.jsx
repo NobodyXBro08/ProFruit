@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { FaArrowLeft, FaLeaf } from 'react-icons/fa';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaArrowLeft, FaLeaf, FaWhatsapp } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { useLoginModal } from '../context/LoginModalContext.jsx';
 import { formatPrice } from '../utils/formatPrice';
+import { buildWhatsAppOrderMessage, buildWhatsAppUrl } from '../utils/orderSummary';
 import { api } from '../config/api';
 import { SITE } from '../config/site';
 import { PAYMENT_METHODS, paymentMethodLabel } from '../config/payments';
@@ -12,23 +13,16 @@ import Container from '../components/ui/Container.jsx';
 import Button from '../components/ui/Button.jsx';
 import './Checkout.css';
 
-function orderStatusLabel(status) {
-  if (status === 'pending') return 'Pendiente de pago';
-  if (status === 'paid') return 'Pagado';
-  return String(status || '—');
-}
-
 const emptyForm = {
   customerName: '',
   customerEmail: '',
   city: '',
   address: '',
-  paymentMethod: 'mercadopago',
+  paymentMethod: 'whatsapp',
 };
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { lines, subtotal, clearCart } = useCart();
   const { openLogin } = useLoginModal();
@@ -38,9 +32,7 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [lastOrder, setLastOrder] = useState(null);
-  const [paying, setPaying] = useState(false);
-  const [payError, setPayError] = useState(null);
-  const [payMessage, setPayMessage] = useState(null);
+  const [doneMessage, setDoneMessage] = useState(null);
 
   useEffect(() => {
     document.title = 'Checkout · ProFruit';
@@ -57,91 +49,21 @@ export default function Checkout() {
     }
   }, [user]);
 
-  useEffect(() => {
-    const mp = searchParams.get('mp');
-    const orderParam = searchParams.get('order');
-    if (mp === 'success' && orderParam) {
-      setLastOrder({ id: Number(orderParam), status: 'paid', total: 0 });
-      setPhase('done');
-      setPayMessage('Pago recibido por Mercado Pago. Revisa tu correo para la confirmación.');
-    }
-  }, [searchParams]);
-
   const step = useMemo(() => {
-    if (lastOrder?.status === 'paid') return 4;
+    if (phase === 'done') return 4;
     if (phase === 'payment') return 3;
     if (phase === 'shipping') return 2;
     return 1;
-  }, [lastOrder, phase]);
+  }, [phase]);
 
   const setField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const pagarManual = useCallback(async (orderId, paymentMethod) => {
-    setPayError(null);
-    setPayMessage(null);
-    setPaying(true);
-    try {
-      const res = await fetch(api('/api/pay'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: orderId, payment_method: paymentMethod }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        if (data.useMercadoPago) {
-          throw new Error('Este pedido requiere pago en línea con Mercado Pago.');
-        }
-        throw new Error(data.error || data.message || 'No se pudo procesar el pago.');
-      }
-      setLastOrder((prev) =>
-        prev && prev.id === orderId ? { ...prev, status: 'paid' } : prev,
-      );
-      setPhase('done');
-      setPayMessage(
-        data.emailSent
-          ? data.message
-          : `${data.message || 'Pago registrado.'}${data.emailError ? ` (${data.emailError})` : ''}`,
-      );
-    } catch (err) {
-      setPayError(err instanceof Error ? err.message : 'Error al pagar.');
-    } finally {
-      setPaying(false);
-    }
-  }, []);
-
-  const pagarMercadoPago = useCallback(async (orderId) => {
-    setPayError(null);
-    setPayMessage(null);
-    setPaying(true);
-    try {
-      const res = await fetch(api('/api/pay/mercadopago'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: orderId }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error || data.hint || 'No se pudo iniciar Mercado Pago.');
-      }
-      if (data.init_point) {
-        window.location.href = data.init_point;
-        return;
-      }
-      throw new Error('Mercado Pago no devolvió enlace de pago.');
-    } catch (err) {
-      setPayError(err instanceof Error ? err.message : 'Error al conectar con Mercado Pago.');
-    } finally {
-      setPaying(false);
-    }
-  }, []);
-
   const handleConfirmOrder = async (e) => {
     e.preventDefault();
     setError(null);
-    setPayError(null);
-    setPayMessage(null);
+    setDoneMessage(null);
 
     if (lines.length === 0) {
       setError('Tu bolsa está vacía.');
@@ -158,6 +80,12 @@ export default function Checkout() {
       setError('Sesión no válida. Cierra sesión y vuelve a entrar.');
       return;
     }
+
+    const orderLines = lines.map((l) => ({
+      name: l.name,
+      quantity: l.quantity,
+      price: l.price,
+    }));
 
     setSubmitting(true);
     try {
@@ -180,12 +108,19 @@ export default function Checkout() {
         const extra = typeof data.details === 'string' && data.details.trim() ? ` (${data.details.trim()})` : '';
         throw new Error(`${base}${extra}`);
       }
+
       clearCart();
       setLastOrder({
         id: Number(data.id),
-        status: typeof data.status === 'string' ? data.status : 'pending',
         total: Number(data.total),
         paymentMethod: form.paymentMethod,
+        customerName: form.customerName.trim(),
+        customerEmail: form.customerEmail.trim(),
+        city: form.city.trim(),
+        address: form.address.trim(),
+        lines: orderLines,
+        emailSent: Boolean(data.emailSent),
+        emailError: data.emailError ?? null,
       });
       setPhase('payment');
     } catch (err) {
@@ -193,6 +128,34 @@ export default function Checkout() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const openWhatsApp = () => {
+    if (!lastOrder) return;
+    const message = buildWhatsAppOrderMessage({
+      orderId: lastOrder.id,
+      customerName: lastOrder.customerName,
+      customerEmail: lastOrder.customerEmail,
+      city: lastOrder.city,
+      address: lastOrder.address,
+      paymentMethod: lastOrder.paymentMethod,
+      total: lastOrder.total,
+      lines: lastOrder.lines,
+    });
+    window.open(buildWhatsAppUrl(message), '_blank', 'noopener,noreferrer');
+  };
+
+  const finishOrder = () => {
+    if (lastOrder?.paymentMethod === 'efectivo') {
+      setDoneMessage(
+        lastOrder.emailSent
+          ? 'Pedido registrado. Revisa tu correo para ver el resumen.'
+          : `Pedido registrado.${lastOrder.emailError ? ` No se pudo enviar el correo: ${lastOrder.emailError}` : ' Configura RESEND_FROM en el servidor para recibir confirmación por email.'}`,
+      );
+    } else {
+      setDoneMessage('Pedido registrado. Si aún no lo enviaste, usa el botón de WhatsApp para confirmarlo con nosotros.');
+    }
+    setPhase('done');
   };
 
   if (lines.length === 0 && !lastOrder) {
@@ -213,8 +176,8 @@ export default function Checkout() {
   }
 
   const selectedMethod = PAYMENT_METHODS.find((m) => m.id === form.paymentMethod);
-  const orderPaymentMethod = lastOrder?.paymentMethod ?? form.paymentMethod;
-  const isOnlinePay = orderPaymentMethod === 'mercadopago' || orderPaymentMethod === 'pse';
+  const summaryLines = lastOrder?.lines ?? lines.map((l) => ({ name: l.name, quantity: l.quantity, price: l.price }));
+  const summaryTotal = lastOrder?.total ?? subtotal;
 
   return (
     <div className="checkout-page">
@@ -224,7 +187,7 @@ export default function Checkout() {
             <FaArrowLeft aria-hidden /> Volver al inicio
           </Link>
           <h1 className="checkout-title">Checkout</h1>
-          <p className="checkout-subtitle">Revisa, confirma tus datos y elige cómo pagar.</p>
+          <p className="checkout-subtitle">Confirma tu pedido por WhatsApp o paga en efectivo al recibir.</p>
         </header>
 
         <ol className="checkout-steps" aria-label="Pasos de compra">
@@ -238,13 +201,13 @@ export default function Checkout() {
           </li>
           <li className={`checkout-step ${step >= 3 ? 'checkout-step--active' : ''} ${step > 3 ? 'checkout-step--done' : ''}`}>
             <span className="checkout-step-num">3</span>
-            <span>Pagar</span>
+            <span>Confirmar</span>
           </li>
         </ol>
 
         <div className="checkout-layout">
           <section className="checkout-main" aria-label="Detalle del pedido">
-            {(phase === 'review' || (phase === 'shipping' && !lastOrder)) && (
+            {(phase === 'review' || phase === 'shipping') && (
               <>
                 <h2 className="checkout-section-title">Tu pedido</h2>
                 <ul className="checkout-lines">
@@ -287,7 +250,9 @@ export default function Checkout() {
                   <form className="checkout-form" onSubmit={handleConfirmOrder}>
                     <h2 className="checkout-section-title">Datos de envío y contacto</h2>
                     <p className="checkout-form-note">
-                      El correo que indiques recibirá la confirmación del pedido y novedades de envío.
+                      {form.paymentMethod === 'efectivo'
+                        ? 'Te enviaremos el resumen del pedido al correo que indiques.'
+                        : 'Al confirmar podrás enviar el resumen completo por WhatsApp.'}
                     </p>
 
                     <div className="checkout-fields">
@@ -334,7 +299,7 @@ export default function Checkout() {
                       </label>
                     </div>
 
-                    <h3 className="checkout-subsection-title">Método de pago</h3>
+                    <h3 className="checkout-subsection-title">Forma de pago</h3>
                     <fieldset className="checkout-payment-options">
                       {PAYMENT_METHODS.map((method) => (
                         <label key={method.id} className="checkout-payment-option">
@@ -360,7 +325,7 @@ export default function Checkout() {
                         Volver
                       </Button>
                       <Button type="submit" variant="dark" size="md" disabled={submitting} className="checkout-submit">
-                        {submitting ? 'Creando pedido…' : 'Confirmar pedido'}
+                        {submitting ? 'Registrando pedido…' : 'Confirmar pedido'}
                       </Button>
                     </div>
                   </form>
@@ -368,50 +333,72 @@ export default function Checkout() {
               </>
             )}
 
-            {phase === 'payment' && lastOrder && lastOrder.status !== 'paid' && (
+            {phase === 'payment' && lastOrder && (
               <div className="checkout-order-done">
-                <h2 className="checkout-section-title">Pedido #{lastOrder.id} creado</h2>
+                <h2 className="checkout-section-title">Pedido #{lastOrder.id} registrado</h2>
                 <p className="checkout-order-status">
-                  Método elegido: <strong>{paymentMethodLabel(orderPaymentMethod)}</strong>
+                  Pago: <strong>{paymentMethodLabel(lastOrder.paymentMethod)}</strong>
                 </p>
-                <p className="checkout-form-note">
-                  {isOnlinePay
-                    ? 'Serás redirigido a Mercado Pago para completar el pago de forma segura.'
-                    : 'Confirmaremos tu pedido y te contactaremos para coordinar el pago y envío.'}
-                </p>
-                {isOnlinePay ? (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="md"
-                    disabled={paying}
-                    onClick={() => pagarMercadoPago(lastOrder.id)}
-                    className="checkout-pay-btn"
-                  >
-                    {paying ? 'Conectando…' : 'Pagar con Mercado Pago'}
-                  </Button>
+
+                <div className="checkout-summary-inline">
+                  <h3>Resumen del pedido</h3>
+                  <ul className="checkout-lines">
+                    {lastOrder.lines.map((line) => (
+                      <li key={`${line.name}-${line.quantity}`} className="checkout-line">
+                        <div className="checkout-line-info">
+                          <span className="checkout-line-name">{line.name}</span>
+                          <span className="checkout-line-meta">
+                            {line.quantity} × {formatPrice(line.price)}
+                          </span>
+                        </div>
+                        <span className="checkout-line-total">{formatPrice(line.quantity * line.price)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="checkout-summary-inline-total">
+                    Total: <strong>{formatPrice(lastOrder.total)}</strong>
+                  </p>
+                  <p className="checkout-form-note">
+                    Envío a {lastOrder.address}, {lastOrder.city}
+                  </p>
+                </div>
+
+                {lastOrder.paymentMethod === 'whatsapp' ? (
+                  <>
+                    <p className="checkout-form-note">
+                      Pulsa el botón para enviarnos el resumen por WhatsApp y coordinar tu pedido.
+                    </p>
+                    <Button type="button" variant="primary" size="md" className="checkout-pay-btn" onClick={openWhatsApp}>
+                      <FaWhatsapp aria-hidden />
+                      Enviar pedido por WhatsApp
+                    </Button>
+                  </>
                 ) : (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="md"
-                    disabled={paying}
-                    onClick={() => pagarManual(lastOrder.id, orderPaymentMethod)}
-                    className="checkout-pay-btn"
-                  >
-                    {paying ? 'Procesando…' : 'Confirmar pedido (efectivo)'}
-                  </Button>
+                  <p className="checkout-msg checkout-msg--success">
+                    {lastOrder.emailSent
+                      ? 'Te enviamos el resumen a tu correo. Pagas al recibir tu pedido.'
+                      : `Pedido registrado.${lastOrder.emailError ? ` Correo no enviado: ${lastOrder.emailError}` : ' Revisa que RESEND_FROM esté configurado en el servidor.'}`}
+                  </p>
                 )}
-                {payError && <p className="checkout-msg checkout-msg--error">{payError}</p>}
+
+                <Button type="button" variant="dark" size="md" className="checkout-pay-btn" onClick={finishOrder}>
+                  Finalizar
+                </Button>
               </div>
             )}
 
-            {(phase === 'done' || lastOrder?.status === 'paid') && (
+            {phase === 'done' && lastOrder && (
               <div className="checkout-order-done checkout-order-done--success">
                 <h2 className="checkout-section-title">¡Gracias por tu compra!</h2>
-                {lastOrder ? <p>Pedido #{lastOrder.id} · {orderStatusLabel(lastOrder.status)}</p> : null}
-                {payMessage && <p className="checkout-msg checkout-msg--success">{payMessage}</p>}
-                <Button type="button" variant="primary" size="md" onClick={() => navigate('/#products')}>
+                <p>Pedido #{lastOrder.id} · Pendiente de confirmación</p>
+                {doneMessage && <p className="checkout-msg checkout-msg--success">{doneMessage}</p>}
+                {lastOrder.paymentMethod === 'whatsapp' && (
+                  <Button type="button" variant="primary" size="md" className="checkout-pay-btn" onClick={openWhatsApp}>
+                    <FaWhatsapp aria-hidden />
+                    Reenviar por WhatsApp
+                  </Button>
+                )}
+                <Button type="button" variant="dark" size="md" onClick={() => navigate('/#products')}>
                   Seguir comprando
                 </Button>
               </div>
@@ -421,24 +408,24 @@ export default function Checkout() {
           <aside className="checkout-aside" aria-label="Resumen">
             <div className="checkout-summary-card">
               <h2>Resumen</h2>
-              <div className="checkout-summary-row">
-                <span>Subtotal</span>
-                <strong>{formatPrice(lastOrder?.total ?? subtotal)}</strong>
-              </div>
-              <div className="checkout-summary-row checkout-summary-row--muted">
-                <span>Envío</span>
-                <span>Se confirma según ciudad</span>
-              </div>
-              {phase === 'shipping' && selectedMethod ? (
-                <div className="checkout-summary-row checkout-summary-row--muted">
-                  <span>Pago</span>
-                  <span>{selectedMethod.label}</span>
-                </div>
-              ) : null}
+              <ul className="checkout-lines checkout-lines--compact">
+                {summaryLines.map((line) => (
+                  <li key={`${line.name}-${line.quantity}`} className="checkout-line checkout-line--compact">
+                    <div className="checkout-line-info">
+                      <span className="checkout-line-name">{line.name}</span>
+                      <span className="checkout-line-meta">{line.quantity} u.</span>
+                    </div>
+                    <span className="checkout-line-total">{formatPrice(line.quantity * line.price)}</span>
+                  </li>
+                ))}
+              </ul>
               <div className="checkout-summary-row checkout-summary-row--total">
-                <span>Total estimado</span>
-                <strong>{formatPrice(lastOrder?.total ?? subtotal)}</strong>
+                <span>Total</span>
+                <strong>{formatPrice(summaryTotal)}</strong>
               </div>
+              {selectedMethod && phase === 'shipping' ? (
+                <p className="checkout-payment-note">Pago: {selectedMethod.label}</p>
+              ) : null}
               <p className="checkout-payment-note">{SITE.payments}</p>
               <p className="checkout-help">
                 ¿Necesitas ayuda?{' '}

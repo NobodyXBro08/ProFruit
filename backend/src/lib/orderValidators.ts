@@ -14,7 +14,7 @@ export interface ValidatedOrderCreate {
   customerPhone?: string;
 }
 
-const PAYMENT_METHODS = new Set(["mercadopago", "pse", "efectivo"]);
+const PAYMENT_METHODS = new Set(["whatsapp", "efectivo"]);
 
 function parsePositiveInt(value: unknown): number | null {
   const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
