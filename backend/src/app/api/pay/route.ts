@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2";
+import { Resend } from "resend";
 import { pool } from "@/lib/db";
 import { corsHeaders, corsOptionsResponse } from "@/lib/cors";
 import { readJsonBody } from "@/lib/http";
 import { deductStockForConfirmedOrder, OrderError } from "@/lib/orders";
-import { sendAdminPedidoResend } from "@/lib/adminResend";
-import { sendClienteConfirmacion } from "@/lib/clientMail";
 
 export function OPTIONS() {
   return corsOptionsResponse();
@@ -20,9 +19,34 @@ function parseOrderId(body: unknown): number | null {
   return n;
 }
 
-function userEmail(row: RowDataPacket): string {
-  const raw = typeof row.email === "string" ? row.email : "";
-  return raw.trim().toLowerCase();
+function normalizeEmail(raw: string): string {
+  return raw
+    .trim()
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .toLowerCase();
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function enviarConResend(to: string, subject: string, text: string): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) return false;
+
+  try {
+    const resend = new Resend(apiKey);
+    const from = process.env.RESEND_FROM?.trim() || "onboarding@resend.dev";
+    const { error } = await resend.emails.send({ from, to: [to], subject, text });
+    if (error) {
+      console.error("Resend:", error);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("Resend:", e);
+    return false;
+  }
 }
 
 export async function POST(request: Request) {
@@ -65,10 +89,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: msg }, { status: 409, headers: corsHeaders });
       }
 
-      const customerEmail = userEmail(order);
+      const customerEmail = normalizeEmail(typeof order.email === "string" ? order.email : "");
       if (!customerEmail) {
         await conn.rollback();
         return NextResponse.json({ error: "Usuario sin email." }, { status: 400, headers: corsHeaders });
+      }
+      if (!isValidEmail(customerEmail)) {
+        await conn.rollback();
+        return NextResponse.json({ error: "El correo de la cuenta no es válido." }, { status: 400, headers: corsHeaders });
       }
 
       await deductStockForConfirmedOrder(conn, Number(order.id));
@@ -89,27 +117,37 @@ export async function POST(request: Request) {
     }
 
     const orderNum = Number(order.id);
-    const customerEmail = userEmail(order);
+    const customerEmail = normalizeEmail(String(order.email || ""));
+    const textoCliente = [
+      `Tu pedido #${orderNum} fue confirmado.`,
+      `Total: ${order.total}.`,
+      "Pronto te enviaremos novedades sobre el envío.",
+    ].join("\n");
 
-    console.log("PAY: cliente SMTP →", customerEmail);
-    const cliente = await sendClienteConfirmacion(customerEmail, orderNum, order.total);
+    const enviadoCliente = await enviarConResend(
+      customerEmail,
+      "Confirmación de compra - ProFruit",
+      textoCliente
+    );
 
-    console.log("PAY: admin Resend");
-    const admin = await sendAdminPedidoResend(orderNum, order.total, customerEmail);
-
-    const parts = ["Pago realizado."];
-    if (cliente.sent) parts.push(`Confirmación enviada a ${customerEmail}.`);
-    else if (cliente.error) parts.push(`Cliente: ${cliente.error}`);
-    if (admin.sent) parts.push("Aviso al administrador enviado.");
-    else if (admin.error) parts.push(`Admin: ${admin.error}`);
+    const adminInbox = process.env.RESEND_TEST_INBOX?.trim()
+      ? normalizeEmail(process.env.RESEND_TEST_INBOX)
+      : "";
+    if (adminInbox && adminInbox !== customerEmail) {
+      await enviarConResend(
+        adminInbox,
+        `Nuevo pago #${orderNum} - ProFruit`,
+        `Pedido #${orderNum}\nTotal: ${order.total}\nCliente: ${customerEmail}`
+      );
+    }
 
     return NextResponse.json(
       {
         success: true,
-        message: parts.join(" "),
-        emailSent: cliente.sent || admin.sent,
-        emailSentToCustomer: cliente.sent,
-        emailSentToAdmin: admin.sent,
+        message: enviadoCliente
+          ? "Pago realizado. Confirmación enviada a tu correo."
+          : "Pago realizado.",
+        emailSent: enviadoCliente,
       },
       { status: 200, headers: corsHeaders }
     );

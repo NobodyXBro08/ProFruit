@@ -121,11 +121,51 @@
   font-size: 1.1rem;
 }
 
+.footer-emails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.footer-payments {
+  margin: var(--space-5) 0 0;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: rgba(232, 245, 236, 0.75);
+}
+
+.footer-help {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-sm);
+  color: rgba(232, 245, 236, 0.88);
+}
+
+.footer-help a {
+  color: #f9e27d;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(249, 226, 125, 0.45);
+}
+
+.footer-help a:hover {
+  border-bottom-color: #f9e27d;
+}
+
 .footer-copy {
   margin: var(--space-6) 0 0;
   font-size: var(--text-xs);
   color: rgba(200, 220, 208, 0.65);
   letter-spacing: 0.02em;
+}
+
+.footer-copy a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(200, 220, 208, 0.35);
+}
+
+.footer-copy a:hover {
+  color: #f9e27d;
 }
 
 @media (min-width: 640px) {

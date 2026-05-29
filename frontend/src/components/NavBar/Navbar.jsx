@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   FaRegUser,
   FaTimes,
@@ -44,34 +45,34 @@ export default function Navbar() {
   const navLinks = (
     <>
       <li>
-        <a href="#inicio" onClick={closeMenu}>
+        <Link to="/#inicio" onClick={closeMenu}>
           Inicio
-        </a>
+        </Link>
       </li>
       <li>
-        <a href="#about" onClick={closeMenu}>
+        <Link to="/#about" onClick={closeMenu}>
           Historia
-        </a>
+        </Link>
       </li>
       <li>
-        <a href="#products" onClick={closeMenu}>
+        <Link to="/#products" onClick={closeMenu}>
           Tienda
-        </a>
+        </Link>
       </li>
       <li>
-        <a href="#opinions" onClick={closeMenu}>
+        <Link to="/#opinions" onClick={closeMenu}>
           Reseñas
-        </a>
+        </Link>
       </li>
       <li>
-        <a href="#jobs" onClick={closeMenu}>
+        <Link to="/#jobs" onClick={closeMenu}>
           Aliados
-        </a>
+        </Link>
       </li>
       <li>
-        <a href="#contact" onClick={closeMenu}>
+        <Link to="/#contact" onClick={closeMenu}>
           Contacto
-        </a>
+        </Link>
       </li>
     </>
   );
@@ -88,7 +89,7 @@ export default function Navbar() {
         className={`navbar-masthead ${scrolled ? 'navbar-masthead--scrolled' : ''} ${isMenuOpen ? 'navbar-masthead--menu' : ''}`}
       >
         <div className="navbar-masthead-inner">
-          <a className="navbar-brand" href="#inicio" onClick={closeMenu}>
+          <Link className="navbar-brand" to="/" onClick={closeMenu}>
             <img
               className="navbar-brand-logo"
               src={ProFruitLogo}
@@ -100,7 +101,7 @@ export default function Navbar() {
               <span className="navbar-brand-mark">ProFruit</span>
               <span className="navbar-brand-tagline">mercado en línea</span>
             </span>
-          </a>
+          </Link>
 
           <label className="navbar-search navbar-search--desktop" htmlFor="catalog-search">
             <span className="visually-hidden">Buscar en la tienda</span>
@@ -234,14 +235,14 @@ export default function Navbar() {
       </div>
 
       <nav className="navbar-dock" aria-label="Accesos rápidos móvil">
-        <a className="navbar-dock-item" href="#inicio" onClick={closeMenu}>
+        <Link className="navbar-dock-item" to="/#inicio" onClick={closeMenu}>
           <FaHome size={22} aria-hidden />
           <span>Inicio</span>
-        </a>
-        <a className="navbar-dock-item" href="#products" onClick={closeMenu}>
+        </Link>
+        <Link className="navbar-dock-item" to="/#products" onClick={closeMenu}>
           <FaShoppingBag size={20} aria-hidden />
           <span>Tienda</span>
-        </a>
+        </Link>
         <button
           type="button"
           className={`navbar-dock-item ${isMenuOpen ? 'navbar-dock-item--active' : ''}`}

@@ -1,10 +1,12 @@
 import React from 'react';
-import { FaShoppingCart } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { FaShoppingCart, FaLeaf } from 'react-icons/fa';
 import { formatPrice } from '../../utils/formatPrice';
 import './ProductCard.css';
 
 /**
  * @param {object} props
+ * @param {number|string} props.id
  * @param {string} props.name
  * @param {string} [props.description]
  * @param {number} props.price
@@ -16,6 +18,7 @@ import './ProductCard.css';
  * @param {() => void} props.onLoginRequest
  */
 export default function ProductCard({
+  id,
   name,
   description,
   price,
@@ -29,48 +32,66 @@ export default function ProductCard({
   const qty = Number(stock);
   const soldOut = !Number.isFinite(qty) || qty <= 0;
   const priceLabel = formatPrice(price);
+  const detailPath = `/producto/${id}`;
 
   return (
-    <article className={`product-card-row ${soldOut ? 'product-card-row--soldout' : ''}`}>
-      <div className="product-card-row__media">
-        <img src={image} alt="" />
-      </div>
-
-      <div className="product-card-row__body">
-        <h3 className="product-card-row__name">{name}</h3>
-
-        {description ? <p className="product-card-row__desc">{description}</p> : null}
-
-        <div className="product-card-row__price-block">
-          <span className="product-card-row__price">{priceLabel}</span>
-          {weight ? <span className="product-card-row__weight">{weight}</span> : null}
+    <article className={`product-card ${soldOut ? 'product-card--soldout' : ''}`}>
+      <Link to={detailPath} className="product-card__media-link" tabIndex={-1} aria-hidden>
+        <div className="product-card__media">
+          <img src={image} alt={name} loading="lazy" />
+          {soldOut ? (
+            <span className="product-card__badge product-card__badge--sold">Agotado</span>
+          ) : qty <= 5 ? (
+            <span className="product-card__badge product-card__badge--low">Últimas unidades</span>
+          ) : (
+            <span className="product-card__badge product-card__badge--fresh">
+              <FaLeaf aria-hidden size={10} /> 100% natural
+            </span>
+          )}
         </div>
-      </div>
+      </Link>
 
-      <div className="product-card-row__cta">
-        {soldOut ? (
-          <button
-            type="button"
-            className="product-card-row__cart product-card-row__cart--disabled"
-            disabled
-            aria-label={`${name}: sin existencias`}
-          >
-            <FaShoppingCart aria-hidden size={15} />
-          </button>
-        ) : !userLoggedIn ? (
-          <button type="button" className="product-card-row__login" onClick={onLoginRequest}>
-            Entrar
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="product-card-row__cart"
-            aria-label={`Añadir ${name} al carrito`}
-            onClick={onAdd}
-          >
-            <FaShoppingCart aria-hidden size={15} />
-          </button>
-        )}
+      <div className="product-card__body">
+        <div className="product-card__meta-row">
+          {weight ? <span className="product-card__weight">{weight}</span> : null}
+          {!soldOut && qty > 0 ? (
+            <span className="product-card__stock">{qty} disponibles</span>
+          ) : null}
+        </div>
+
+        <h3 className="product-card__name">
+          <Link to={detailPath}>{name}</Link>
+        </h3>
+
+        {description ? <p className="product-card__desc">{description}</p> : null}
+
+        <div className="product-card__footer">
+          <span className="product-card__price">{priceLabel}</span>
+          <div className="product-card__actions">
+            <Link to={detailPath} className="product-card__detail-btn">
+              Ver producto
+            </Link>
+            {soldOut ? (
+              <button type="button" className="product-card__cart product-card__cart--disabled" disabled>
+                Sin stock
+              </button>
+            ) : !userLoggedIn ? (
+              <button type="button" className="product-card__cart product-card__cart--login" onClick={onLoginRequest}>
+                Entrar
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="product-card__cart"
+                aria-label={`Añadir ${name} al carrito`}
+                onClick={onAdd}
+              >
+                <FaShoppingCart aria-hidden size={14} />
+                Añadir
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </article>
   );

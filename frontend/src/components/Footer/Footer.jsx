@@ -1,8 +1,9 @@
 import React from 'react';
 import './Footer.css';
-import { FaFacebookF, FaInstagram, FaTwitter } from 'react-icons/fa';
-import { FiPhone, FiMail, FiMapPin } from 'react-icons/fi';
+import { FaFacebookF, FaInstagram, FaYoutube } from 'react-icons/fa';
+import { FiPhone, FiMail, FiMapPin, FiClock } from 'react-icons/fi';
 import Container from '../ui/Container.jsx';
+import { SITE } from '../../config/site';
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -12,10 +13,10 @@ export default function Footer() {
       <div className="footer-glow" aria-hidden />
       <Container className="footer-inner">
         <div className="footer-top">
-          <p className="footer-eyebrow">ProFruit</p>
+          <p className="footer-eyebrow">{SITE.name}</p>
           <div className="footer-social" aria-label="Redes sociales">
             <a
-              href="https://facebook.com"
+              href={SITE.social.facebook}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Facebook"
@@ -24,7 +25,7 @@ export default function Footer() {
               <FaFacebookF aria-hidden />
             </a>
             <a
-              href="https://instagram.com"
+              href={SITE.social.instagram}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram"
@@ -33,13 +34,13 @@ export default function Footer() {
               <FaInstagram aria-hidden />
             </a>
             <a
-              href="https://twitter.com"
+              href={SITE.social.youtube}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Twitter"
+              aria-label="YouTube"
               className="footer-social-link"
             >
-              <FaTwitter aria-hidden />
+              <FaYoutube aria-hidden />
             </a>
           </div>
         </div>
@@ -47,23 +48,51 @@ export default function Footer() {
         <ul className="footer-contact">
           <li>
             <FiPhone className="footer-contact-icon" aria-hidden />
-            <a href="tel:+573001234567">+57 300 123 4567</a>
+            <a href={`tel:${SITE.phoneTel}`}>{SITE.phone}</a>
           </li>
           <li>
             <FiMail className="footer-contact-icon" aria-hidden />
-            <a href="mailto:info@profruit.co">info@profruit.co</a>
+            <span className="footer-emails">
+              {SITE.emails.map((email) => (
+                <a key={email} href={`mailto:${email}`}>
+                  {email}
+                </a>
+              ))}
+            </span>
           </li>
           <li>
             <FiMapPin className="footer-contact-icon" aria-hidden />
             <span>
-              Calle 123 #45-67
+              {SITE.address.line1}
               <br />
-              Bogotá, Colombia
+              {SITE.address.city}, {SITE.address.country}
+            </span>
+          </li>
+          <li>
+            <FiClock className="footer-contact-icon" aria-hidden />
+            <span>
+              {SITE.hours.weekdays}
+              <br />
+              {SITE.hours.saturday}
             </span>
           </li>
         </ul>
 
-        <p className="footer-copy">© {year} ProFruit. Todos los derechos reservados.</p>
+        <p className="footer-payments">{SITE.payments}</p>
+
+        <p className="footer-help">
+          ¿Necesitas ayuda?{' '}
+          <a href={SITE.whatsapp} target="_blank" rel="noopener noreferrer">
+            Escríbenos por WhatsApp
+          </a>
+        </p>
+
+        <p className="footer-copy">
+          © {year} {SITE.name.toUpperCase()} ·{' '}
+          <a href={SITE.website} target="_blank" rel="noopener noreferrer">
+            profruitcol.com
+          </a>
+        </p>
       </Container>
     </footer>
   );

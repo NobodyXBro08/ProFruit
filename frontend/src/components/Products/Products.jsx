@@ -1,22 +1,16 @@
-import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import React, { useMemo, useState, useEffect } from 'react';
 import './Products.css';
-
-import MangoDeshidratado from '../../assets/images/MangoDeshidratado.jpg';
-import PinaDeshidratada from '../../assets/images/PiñaAnillos.jpg';
-import ChipsBanano from '../../assets/images/ChipsDeBanano.jpg';
-import AnillosManzana from '../../assets/images/AnillosDeManzana.jpg';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import { useCatalog } from '../../context/CatalogContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { useLoginModal } from '../../context/LoginModalContext.jsx';
+import { getProductImage } from '../../utils/productImages';
+import { SITE } from '../../config/site';
 import Container from '../ui/Container.jsx';
 import SectionHeader from '../ui/SectionHeader.jsx';
 import Button from '../ui/Button.jsx';
 import ProductCard from './ProductCard.jsx';
-
-const defaultImages = [MangoDeshidratado, PinaDeshidratada, ChipsBanano, AnillosManzana];
 
 export default function Products() {
   const API = process.env.REACT_APP_API_URL;
@@ -28,27 +22,6 @@ export default function Products() {
   const { showToast } = useToast();
   const { openLogin } = useLoginModal();
   const { searchQuery, setSearchQuery } = useCatalog();
-  const carouselRef = useRef(null);
-
-  const scrollCarousel = useCallback((direction) => {
-    const el = carouselRef.current;
-    if (!el) return;
-    const step = Math.max(220, Math.floor(el.clientWidth * 0.72));
-    el.scrollBy({ left: direction === 'next' ? step : -step, behavior: 'smooth' });
-  }, []);
-
-  const onCarouselKeyDown = useCallback(
-    (e) => {
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        scrollCarousel('prev');
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        scrollCarousel('next');
-      }
-    },
-    [scrollCarousel],
-  );
 
   useEffect(() => {
     async function loadProducts() {
@@ -90,13 +63,6 @@ export default function Products() {
     });
   }, [productsIndexed, searchQuery]);
 
-  const getProductImage = (product, index) => {
-    if (product.image && (product.image.startsWith('http') || product.image.startsWith('data:'))) {
-      return product.image;
-    }
-    return defaultImages[index % defaultImages.length];
-  };
-
   const handleAdd = (product, displayIndex) => {
     if (!user) {
       showToast('Inicia sesión para añadir productos a tu bolsa.', 'error');
@@ -110,9 +76,9 @@ export default function Products() {
 
   if (loading) {
     return (
-      <section className="products products--tropical-menu" id="products">
+      <section className="products products--catalog" id="products">
         <Container>
-          <SectionHeader title="La tienda" subtitle="Cargando catálogo…" />
+          <SectionHeader title="Nuestros productos" subtitle="Cargando catálogo…" />
           <p className="products-loading-msg">Cargando…</p>
         </Container>
       </section>
@@ -121,10 +87,10 @@ export default function Products() {
 
   if (error) {
     return (
-      <section className="products products--tropical-menu" id="products">
+      <section className="products products--catalog" id="products">
         <Container>
           <SectionHeader
-            title="La tienda"
+            title="Nuestros productos"
             subtitle={error}
             subtitleClassName="section-header-subtitle--error"
           />
@@ -135,10 +101,10 @@ export default function Products() {
 
   if (products.length === 0) {
     return (
-      <section className="products products--tropical-menu" id="products">
+      <section className="products products--catalog" id="products">
         <Container>
           <SectionHeader
-            title="La tienda"
+            title="Nuestros productos"
             subtitle="No hay productos en la base de datos. Revisa el seed o la documentación del proyecto."
           />
         </Container>
@@ -147,12 +113,18 @@ export default function Products() {
   }
 
   return (
-    <section className="products products--tropical-menu" id="products">
+    <section className="products products--catalog" id="products">
       <Container>
         <SectionHeader
-          title="Carta tropical"
-          subtitle="Una fila ligera estilo menú: desliza o usa las flechas. La búsqueda sigue arriba."
+          title="Nuestros productos"
+          subtitle="Frutas deshidratadas 100% naturales. Elige tu favorito, conoce el detalle y llévalo a tu bolsa."
         />
+
+        <ul className="products-trust" aria-label="Beneficios de compra">
+          <li>Origen Colombia</li>
+          <li>Sin azúcar añadida</li>
+          <li>{SITE.payments}</li>
+        </ul>
 
         {visibleProducts.length === 0 ? (
           <div className="products-no-results">
@@ -163,60 +135,34 @@ export default function Products() {
             </Button>
           </div>
         ) : (
-          <div className="products-menu-panel">
-            <p className="products-menu-kicker" aria-hidden>
-              Fresco · Simple · Del día
+          <div className="products-grid-wrap">
+            <p className="products-count" aria-live="polite">
+              {visibleProducts.length} {visibleProducts.length === 1 ? 'producto' : 'productos'}
             </p>
-            <div className="products-carousel-shell">
-              <button
-                type="button"
-                className="products-carousel-nav products-carousel-nav--prev"
-                aria-label="Ver productos anteriores"
-                onClick={() => scrollCarousel('prev')}
-              >
-                <FaChevronLeft aria-hidden />
-              </button>
-              <div
-                className="products-carousel"
-                ref={carouselRef}
-                tabIndex={0}
-                role="region"
-                aria-label="Carrusel de productos"
-                onKeyDown={onCarouselKeyDown}
-              >
-                <ul className="products-carousel__track">
-                  {visibleProducts.map((product) => {
-                    const imgSrc = getProductImage(product, product._index);
-                    return (
-                      <li key={product.id} className="products-carousel__slide">
-                        <ProductCard
-                          name={product.name}
-                          description={product.description}
-                          price={product.price}
-                          image={imgSrc}
-                          stock={product.stock}
-                          weight={product.weight}
-                          userLoggedIn={!!user}
-                          onAdd={() => handleAdd(product, product._index)}
-                          onLoginRequest={() => {
-                            showToast('Necesitas una cuenta para comprar.', 'error');
-                            openLogin();
-                          }}
-                        />
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-              <button
-                type="button"
-                className="products-carousel-nav products-carousel-nav--next"
-                aria-label="Ver más productos"
-                onClick={() => scrollCarousel('next')}
-              >
-                <FaChevronRight aria-hidden />
-              </button>
-            </div>
+            <ul className="products-grid">
+              {visibleProducts.map((product) => {
+                const imgSrc = getProductImage(product, product._index);
+                return (
+                  <li key={product.id}>
+                    <ProductCard
+                      id={product.id}
+                      name={product.name}
+                      description={product.description}
+                      price={product.price}
+                      image={imgSrc}
+                      stock={product.stock}
+                      weight={product.weight}
+                      userLoggedIn={!!user}
+                      onAdd={() => handleAdd(product, product._index)}
+                      onLoginRequest={() => {
+                        showToast('Necesitas una cuenta para comprar.', 'error');
+                        openLogin();
+                      }}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
       </Container>
