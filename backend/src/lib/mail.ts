@@ -40,8 +40,8 @@ export function formatShippingLine(city: string, address: string): string {
 }
 
 export function paymentMethodLabel(method: string): string {
-  if (method === "whatsapp") return "WhatsApp";
-  if (method === "efectivo") return "Efectivo / Contra entrega";
+  if (method === "whatsapp") return "Atención por WhatsApp";
+  if (method === "efectivo") return "Efectivo contra entrega";
   return method;
 }
 

@@ -20,5 +20,5 @@ export const SITE = {
     instagram: 'https://www.instagram.com/profruitcol',
     youtube: 'https://www.youtube.com/@profruitcol',
   },
-  payments: 'Pago por WhatsApp o efectivo al recibir tu pedido.',
+  payments: 'Atención por WhatsApp o efectivo contra entrega.',
 };
