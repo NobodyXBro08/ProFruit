@@ -1,5 +1,7 @@
 import bcrypt from "bcryptjs";
 import { pool, query } from "./db";
+import type { UserRole } from "./roles";
+import { normalizeRole } from "./roles";
 
 const BCRYPT_ROUNDS = 10;
 
@@ -31,12 +33,12 @@ export function validateCredentials(
 export type UserAuthRow = {
   id: number;
   password_hash: string;
-  email: string | null;
+  role: UserRole;
 };
 
 export async function findUserByUsername(username: string): Promise<UserAuthRow | null> {
   const rows = await query<Record<string, unknown>>(
-    "SELECT id, password_hash, email FROM users WHERE username = ? LIMIT 1",
+    "SELECT id, password_hash, role FROM users WHERE username = ? LIMIT 1",
     [username]
   );
   const row = rows[0];
@@ -44,23 +46,14 @@ export async function findUserByUsername(username: string): Promise<UserAuthRow 
   return {
     id: Number(row.id),
     password_hash: String(row.password_hash),
-    email: row.email != null ? String(row.email) : null,
+    role: normalizeRole(row.role),
   };
 }
 
-export async function findUserByEmail(email: string): Promise<{ id: number } | null> {
-  const norm = email.trim().toLowerCase();
-  const rows = await query<{ id: number }>(
-    "SELECT id FROM users WHERE LOWER(TRIM(email)) = ? LIMIT 1",
-    [norm]
-  );
-  return rows[0] ?? null;
-}
-
-export async function createUser(username: string, passwordHash: string, email: string): Promise<void> {
-  await pool.execute("INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)", [
+export async function createUser(username: string, passwordHash: string, role: UserRole = "client"): Promise<void> {
+  await pool.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", [
     username,
     passwordHash,
-    email,
+    role,
   ]);
 }

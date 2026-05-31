@@ -4,7 +4,6 @@ export const SITE = {
   website: 'https://www.profruitcol.com',
   phone: '+57 322 637 8065',
   phoneTel: '+573226378065',
-  emails: ['profruitcol@gmail.com', 'hola@profruitcol.com'],
   address: {
     line1: 'Calle 68 #90a-40',
     city: 'Bogotá',

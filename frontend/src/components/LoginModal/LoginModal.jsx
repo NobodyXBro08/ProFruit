@@ -8,7 +8,6 @@ export default function LoginModal({ isOpen, onClose }) {
   const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [regEmail, setRegEmail] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [registerOk, setRegisterOk] = useState(null);
@@ -20,7 +19,6 @@ export default function LoginModal({ isOpen, onClose }) {
     setError(null);
     setRegisterOk(null);
     setShowPassword(false);
-    setRegEmail('');
     return () => {
       document.body.style.overflow = '';
     };
@@ -42,12 +40,10 @@ export default function LoginModal({ isOpen, onClose }) {
         await register({
           username: username.trim(),
           password,
-          email: regEmail.trim(),
         });
         setRegisterOk('Cuenta creada. Ahora puedes iniciar sesión con tu usuario y contraseña.');
         setMode('login');
         setPassword('');
-        setRegEmail('');
       } else {
         await login(username, password);
         setUsername('');
@@ -98,20 +94,6 @@ export default function LoginModal({ isOpen, onClose }) {
         </div>
 
         <form className="login-modal-form" onSubmit={handleSubmit} autoComplete="off">
-          {mode === 'register' && (
-            <label className="login-modal-label">
-              Correo electrónico
-              <input
-                className="login-modal-input"
-                name="profuit-reg-email"
-                type="email"
-                value={regEmail}
-                onChange={(e) => setRegEmail(e.target.value)}
-                autoComplete="email"
-                required
-              />
-            </label>
-          )}
           <label className="login-modal-label">
             Usuario
             <input

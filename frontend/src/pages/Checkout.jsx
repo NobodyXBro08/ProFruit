@@ -15,7 +15,7 @@ import './Checkout.css';
 
 const emptyForm = {
   customerName: '',
-  customerEmail: '',
+  customerPhone: '',
   city: '',
   address: '',
   paymentMethod: 'whatsapp',
@@ -44,7 +44,7 @@ export default function Checkout() {
       setForm((prev) => ({
         ...prev,
         customerName: prev.customerName || user.fullName || user.username || '',
-        customerEmail: prev.customerEmail || user.email || '',
+        customerPhone: prev.customerPhone || user.phone || '',
       }));
     }
   }, [user]);
@@ -95,7 +95,7 @@ export default function Checkout() {
         body: JSON.stringify({
           userId,
           customerName: form.customerName.trim(),
-          customerEmail: form.customerEmail.trim(),
+          customerPhone: form.customerPhone.trim(),
           city: form.city.trim(),
           address: form.address.trim(),
           paymentMethod: form.paymentMethod,
@@ -115,12 +115,10 @@ export default function Checkout() {
         total: Number(data.total),
         paymentMethod: form.paymentMethod,
         customerName: form.customerName.trim(),
-        customerEmail: form.customerEmail.trim(),
+        customerPhone: form.customerPhone.trim(),
         city: form.city.trim(),
         address: form.address.trim(),
         lines: orderLines,
-        emailSent: Boolean(data.emailSent),
-        emailError: data.emailError ?? null,
       });
       setPhase('payment');
     } catch (err) {
@@ -135,7 +133,7 @@ export default function Checkout() {
     const message = buildWhatsAppOrderMessage({
       orderId: lastOrder.id,
       customerName: lastOrder.customerName,
-      customerEmail: lastOrder.customerEmail,
+      customerPhone: lastOrder.customerPhone,
       city: lastOrder.city,
       address: lastOrder.address,
       paymentMethod: lastOrder.paymentMethod,
@@ -146,15 +144,13 @@ export default function Checkout() {
   };
 
   const finishOrder = () => {
-    if (lastOrder?.paymentMethod === 'efectivo') {
-      setDoneMessage(
-        lastOrder.emailSent
-          ? 'Pedido registrado. Revisa tu correo para ver el resumen.'
-          : `Pedido registrado.${lastOrder.emailError ? ` No se pudo enviar el correo: ${lastOrder.emailError}` : ' Configura RESEND_FROM en el servidor para recibir confirmación por email.'}`,
-      );
-    } else {
-      setDoneMessage('Pedido registrado. Si aún no lo enviaste, usa el botón de WhatsApp para confirmarlo con nosotros.');
-    }
+    const extra =
+      lastOrder?.paymentMethod === 'efectivo'
+        ? ' Pagas en efectivo al recibir tu pedido.'
+        : '';
+    setDoneMessage(
+      `Pedido registrado.${extra} Si aún no lo enviaste, usa WhatsApp para confirmarlo con nosotros.`,
+    );
     setPhase('done');
   };
 
@@ -250,9 +246,7 @@ export default function Checkout() {
                   <form className="checkout-form" onSubmit={handleConfirmOrder}>
                     <h2 className="checkout-section-title">Datos de envío y contacto</h2>
                     <p className="checkout-form-note">
-                      {form.paymentMethod === 'efectivo'
-                        ? 'Te enviaremos el resumen del pedido al correo que indiques.'
-                        : 'Al confirmar podrás enviar el resumen completo por WhatsApp.'}
+                      Al confirmar podrás enviar el resumen completo por WhatsApp.
                     </p>
 
                     <div className="checkout-fields">
@@ -267,13 +261,14 @@ export default function Checkout() {
                         />
                       </label>
                       <label className="checkout-field">
-                        <span>Correo electrónico</span>
+                        <span>Teléfono / WhatsApp</span>
                         <input
-                          type="email"
+                          type="tel"
                           required
-                          autoComplete="email"
-                          value={form.customerEmail}
-                          onChange={(e) => setField('customerEmail', e.target.value)}
+                          autoComplete="tel"
+                          placeholder="Ej. 322 637 8065"
+                          value={form.customerPhone}
+                          onChange={(e) => setField('customerPhone', e.target.value)}
                         />
                       </label>
                       <label className="checkout-field">
@@ -363,23 +358,15 @@ export default function Checkout() {
                   </p>
                 </div>
 
-                {lastOrder.paymentMethod === 'whatsapp' ? (
-                  <>
-                    <p className="checkout-form-note">
-                      Pulsa el botón para enviarnos el resumen por WhatsApp y coordinar tu pedido.
-                    </p>
-                    <Button type="button" variant="primary" size="md" className="checkout-pay-btn" onClick={openWhatsApp}>
-                      <FaWhatsapp aria-hidden />
-                      Enviar pedido por WhatsApp
-                    </Button>
-                  </>
-                ) : (
-                  <p className="checkout-msg checkout-msg--success">
-                    {lastOrder.emailSent
-                      ? 'Te enviamos el resumen a tu correo. Pagas al recibir tu pedido.'
-                      : `Pedido registrado.${lastOrder.emailError ? ` Correo no enviado: ${lastOrder.emailError}` : ' Revisa que RESEND_FROM esté configurado en el servidor.'}`}
-                  </p>
-                )}
+                <p className="checkout-form-note">
+                  {lastOrder.paymentMethod === 'efectivo'
+                    ? 'Envía el resumen por WhatsApp para coordinar la entrega. Pagas en efectivo al recibir.'
+                    : 'Pulsa el botón para enviarnos el resumen por WhatsApp y coordinar tu pedido.'}
+                </p>
+                <Button type="button" variant="primary" size="md" className="checkout-pay-btn" onClick={openWhatsApp}>
+                  <FaWhatsapp aria-hidden />
+                  Enviar pedido por WhatsApp
+                </Button>
 
                 <Button type="button" variant="dark" size="md" className="checkout-pay-btn" onClick={finishOrder}>
                   Finalizar
@@ -392,12 +379,10 @@ export default function Checkout() {
                 <h2 className="checkout-section-title">¡Gracias por tu compra!</h2>
                 <p>Pedido #{lastOrder.id} · Pendiente de confirmación</p>
                 {doneMessage && <p className="checkout-msg checkout-msg--success">{doneMessage}</p>}
-                {lastOrder.paymentMethod === 'whatsapp' && (
-                  <Button type="button" variant="primary" size="md" className="checkout-pay-btn" onClick={openWhatsApp}>
-                    <FaWhatsapp aria-hidden />
-                    Reenviar por WhatsApp
-                  </Button>
-                )}
+                <Button type="button" variant="primary" size="md" className="checkout-pay-btn" onClick={openWhatsApp}>
+                  <FaWhatsapp aria-hidden />
+                  Enviar por WhatsApp
+                </Button>
                 <Button type="button" variant="dark" size="md" onClick={() => navigate('/#products')}>
                   Seguir comprando
                 </Button>

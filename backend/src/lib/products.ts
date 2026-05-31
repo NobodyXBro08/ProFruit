@@ -34,6 +34,20 @@ function mapRow(row: Record<string, unknown>): Product {
   };
 }
 
+export async function listProductsForAdmin(): Promise<Product[]> {
+  const rows = await query<Record<string, unknown>>(`${PRODUCTS_SELECT} ORDER BY id DESC`);
+  return rows.map((row) => ({
+    id: row.id as number,
+    name: row.name as string,
+    description: row.description as string,
+    price: Number(row.price),
+    stock: Number(row.stock),
+    stock_reserved: Number(row.stock_reserved ?? 0),
+    ...(row.image != null && String(row.image) !== "" ? { image: String(row.image) } : {}),
+    ...(row.weight != null && String(row.weight) !== "" ? { weight: String(row.weight) } : {}),
+  }));
+}
+
 export async function listProducts(): Promise<Product[]> {
   const rows = await query<Record<string, unknown>>(`${PRODUCTS_SELECT} ORDER BY id DESC`);
   return rows.map(mapRow);

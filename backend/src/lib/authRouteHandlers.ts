@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import {
   createUser,
-  findUserByEmail,
   findUserByUsername,
   hashPassword,
   verifyPassword,
@@ -9,6 +8,7 @@ import {
 import { corsHeaders } from "./cors";
 import { readJsonBody } from "./http";
 import { parseValidatedCredentials } from "./parseValidatedCredentials";
+import { signToken } from "./tokens";
 import { validateRegisterBody } from "./registerValidators";
 
 export async function handleRegisterPost(request: Request): Promise<NextResponse> {
@@ -21,7 +21,7 @@ export async function handleRegisterPost(request: Request): Promise<NextResponse
       return NextResponse.json({ error: v.error }, { status: 400, headers: corsHeaders });
     }
 
-    const { username, password, email } = v.data;
+    const { username, password } = v.data;
 
     const existingUser = await findUserByUsername(username);
     if (existingUser) {
@@ -31,23 +31,15 @@ export async function handleRegisterPost(request: Request): Promise<NextResponse
       );
     }
 
-    const existingEmail = await findUserByEmail(email);
-    if (existingEmail) {
-      return NextResponse.json(
-        { error: "Ya existe una cuenta con ese correo electrónico." },
-        { status: 409, headers: corsHeaders }
-      );
-    }
-
     const passwordHash = await hashPassword(password);
     try {
-      await createUser(username, passwordHash, email);
+      await createUser(username, passwordHash);
     } catch (e) {
       console.error("createUser:", e);
       const code = (e as { code?: string })?.code;
       if (code === "ER_DUP_ENTRY") {
         return NextResponse.json(
-          { error: "El nombre de usuario o el correo ya está registrado." },
+          { error: "El nombre de usuario ya está registrado." },
           { status: 409, headers: corsHeaders }
         );
       }
@@ -77,10 +69,11 @@ export async function handleLoginPost(request: Request): Promise<NextResponse> {
     return NextResponse.json(
       {
         message: "Autenticación satisfactoria",
+        token: signToken({ sub: row.id, username: user, role: row.role }),
         user: {
           id: row.id,
           username: user,
-          ...(row.email && { email: row.email }),
+          role: row.role,
         },
       },
       { status: 200, headers: corsHeaders }

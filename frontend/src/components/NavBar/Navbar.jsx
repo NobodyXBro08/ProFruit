@@ -22,7 +22,7 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { searchQuery, setSearchQuery } = useCatalog();
   const { clearCart } = useCart();
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const { openLogin } = useLoginModal();
   const { closeCart } = useCartUi();
 
@@ -74,6 +74,13 @@ export default function Navbar() {
           Contacto
         </Link>
       </li>
+      {isAdmin ? (
+        <li>
+          <Link to="/admin/productos" onClick={closeMenu}>
+            Admin
+          </Link>
+        </li>
+      ) : null}
     </>
   );
 

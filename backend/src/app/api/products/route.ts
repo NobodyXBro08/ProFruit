@@ -3,6 +3,7 @@ import { corsHeaders, corsJson, corsOptionsResponse } from "@/lib/cors";
 import { createProduct, deleteProduct, listProducts, updateProduct } from "@/lib/products";
 import { readJsonBody, parseQueryId } from "@/lib/http";
 import { validateProductCreate, validateProductUpdate } from "@/lib/productValidators";
+import { requireAdmin } from "@/lib/requireAuth";
 
 export function OPTIONS() {
   return corsOptionsResponse();
@@ -20,6 +21,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const auth = requireAdmin(request);
+  if (!auth.ok) return auth.response;
+
   try {
     const raw = await readJsonBody(request);
     if (!raw.ok) return raw.response;
@@ -45,6 +49,9 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const auth = requireAdmin(request);
+  if (!auth.ok) return auth.response;
+
   try {
     const raw = await readJsonBody(request);
     if (!raw.ok) return raw.response;
@@ -83,6 +90,9 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const auth = requireAdmin(request);
+  if (!auth.ok) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");

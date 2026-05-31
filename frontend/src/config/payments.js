@@ -2,12 +2,12 @@ export const PAYMENT_METHODS = [
   {
     id: 'whatsapp',
     label: 'Atención por WhatsApp',
-    hint: 'Te enviamos el resumen del pedido y lo confirmas por chat con nuestro equipo.',
+    hint: 'Envías el resumen del pedido por chat y lo confirmamos contigo.',
   },
   {
     id: 'efectivo',
     label: 'Efectivo contra entrega',
-    hint: 'Pagas al recibir tu pedido. Te enviamos la confirmación al correo que indiques.',
+    hint: 'Pagas al recibir. Envía el resumen por WhatsApp para coordinar la entrega.',
   },
 ];
 

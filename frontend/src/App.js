@@ -13,6 +13,8 @@ import SyncGuestCart from './components/SyncGuestCart.jsx';
 import Home from './pages/Home.jsx';
 import ProductDetail from './pages/ProductDetail.jsx';
 import Checkout from './pages/Checkout.jsx';
+import AdminProducts from './pages/AdminProducts.jsx';
+import RequireAdmin from './components/RequireAdmin.jsx';
 import './App.css';
 
 function ScrollToHash() {
@@ -58,6 +60,14 @@ export default function App() {
                         <Route path="/" element={<Home />} />
                         <Route path="/producto/:id" element={<ProductDetail />} />
                         <Route path="/checkout" element={<Checkout />} />
+                        <Route
+                          path="/admin/productos"
+                          element={
+                            <RequireAdmin>
+                              <AdminProducts />
+                            </RequireAdmin>
+                          }
+                        />
                       </Routes>
                     </main>
                     <Footer />

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2";
-import { Resend } from "resend";
 import { pool } from "@/lib/db";
 import { corsHeaders, corsOptionsResponse } from "@/lib/cors";
 import { readJsonBody } from "@/lib/http";
@@ -20,59 +19,13 @@ function parseOrderId(body: unknown): number | null {
   return n;
 }
 
-function normalizeEmail(raw: string): string {
-  return raw
-    .trim()
-    .replace(/[\u200B-\u200D\uFEFF]/g, "")
-    .toLowerCase();
-}
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
 function paymentProviderFromNotes(notes: unknown): string {
   const s = typeof notes === "string" ? notes : "";
   const match = s.match(/payment_method:([a-z]+)/);
   return match?.[1] ?? "manual";
 }
 
-type SendResult = { sent: boolean; error?: string };
-
-async function enviarConResend(to: string, subject: string, text: string): Promise<SendResult> {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!apiKey) {
-    return { sent: false, error: "RESEND_API_KEY no configurada en el backend." };
-  }
-
-  try {
-    const resend = new Resend(apiKey);
-    const from = process.env.RESEND_FROM?.trim() || "onboarding@resend.dev";
-    const { error } = await resend.emails.send({ from, to: [to], subject, text });
-    if (error) {
-      console.error("Resend:", error);
-      return { sent: false, error: error.message || "Error al enviar correo." };
-    }
-    return { sent: true };
-  } catch (e) {
-    console.error("Resend:", e);
-    const msg = e instanceof Error ? e.message : "Error al enviar correo.";
-    return { sent: false, error: msg };
-  }
-}
-
-function formatShipping(raw: unknown): string {
-  if (typeof raw !== "string" || !raw.trim()) return "—";
-  try {
-    const o = JSON.parse(raw) as { line?: string; city?: string; address?: string };
-    if (typeof o.line === "string" && o.line.trim()) return o.line.trim();
-    if (o.city && o.address) return `${o.address}, ${o.city}`;
-  } catch {
-    return raw.trim();
-  }
-  return raw.trim();
-}
-
+/** Uso interno / admin: marca un pedido pendiente como pagado. */
 export async function POST(request: Request) {
   try {
     const raw = await readJsonBody(request);
@@ -84,18 +37,14 @@ export async function POST(request: Request) {
     }
 
     const bodyMethod = parsePaymentMethod(raw.body);
-
     const conn = await pool.getConnection();
     let order: RowDataPacket;
+
     try {
       await conn.beginTransaction();
 
       const [rows] = await conn.query<RowDataPacket[]>(
-        `SELECT o.id, o.total, o.status, o.customer_name, o.customer_email, o.shipping_address, o.notes, u.email AS user_email
-         FROM orders o
-         LEFT JOIN users u ON o.user_id = u.id
-         WHERE o.id = ?
-         FOR UPDATE`,
+        "SELECT id, total, status, notes FROM orders WHERE id = ? FOR UPDATE",
         [orderId]
       );
 
@@ -117,23 +66,6 @@ export async function POST(request: Request) {
 
       const provider = bodyMethod ?? paymentProviderFromNotes(order.notes);
 
-      const customerEmail = normalizeEmail(
-        typeof order.customer_email === "string" && order.customer_email.trim()
-          ? order.customer_email
-          : typeof order.user_email === "string"
-            ? order.user_email
-            : ""
-      );
-
-      if (!customerEmail) {
-        await conn.rollback();
-        return NextResponse.json({ error: "El pedido no tiene correo de contacto." }, { status: 400, headers: corsHeaders });
-      }
-      if (!isValidEmail(customerEmail)) {
-        await conn.rollback();
-        return NextResponse.json({ error: "El correo del pedido no es válido." }, { status: 400, headers: corsHeaders });
-      }
-
       await deductStockForConfirmedOrder(conn, Number(order.id));
 
       await conn.query(
@@ -151,49 +83,11 @@ export async function POST(request: Request) {
       conn.release();
     }
 
-    const orderNum = Number(order.id);
-    const customerEmail = normalizeEmail(String(order.customer_email || order.user_email || ""));
-    const customerName = String(order.customer_name || "Cliente");
-    const shipping = formatShipping(order.shipping_address);
-
-    const textoCliente = [
-      `Hola ${customerName},`,
-      "",
-      `Tu pedido #${orderNum} fue confirmado.`,
-      `Total: $${Number(order.total).toLocaleString("es-CO")} COP.`,
-      `Dirección de envío: ${shipping}`,
-      "",
-      "Pronto te enviaremos novedades sobre el despacho.",
-      "",
-      "Gracias por comprar en ProFruit.",
-    ].join("\n");
-
-    const emailResult = await enviarConResend(
-      customerEmail,
-      "Confirmación de compra - ProFruit",
-      textoCliente
-    );
-
-    const adminInbox = process.env.RESEND_ADMIN_EMAIL?.trim() || process.env.RESEND_TEST_INBOX?.trim() || "";
-    if (adminInbox) {
-      const adminNorm = normalizeEmail(adminInbox);
-      if (adminNorm && adminNorm !== customerEmail) {
-        await enviarConResend(
-          adminNorm,
-          `Nuevo pago #${orderNum} - ProFruit`,
-          `Pedido #${orderNum}\nTotal: ${order.total}\nCliente: ${customerName} <${customerEmail}>\nEnvío: ${shipping}`
-        );
-      }
-    }
-
     return NextResponse.json(
       {
         success: true,
-        message: emailResult.sent
-          ? "Pago registrado. Confirmación enviada a tu correo."
-          : "Pago registrado. No se pudo enviar el correo; revisa la configuración de Resend.",
-        emailSent: emailResult.sent,
-        emailError: emailResult.error ?? null,
+        message: "Pedido marcado como pagado.",
+        order_id: Number(order.id),
       },
       { status: 200, headers: corsHeaders }
     );

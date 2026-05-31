@@ -1,7 +1,7 @@
 import React from 'react';
 import './Footer.css';
 import { FaFacebookF, FaInstagram, FaYoutube } from 'react-icons/fa';
-import { FiPhone, FiMail, FiMapPin, FiClock } from 'react-icons/fi';
+import { FiPhone, FiMapPin, FiClock } from 'react-icons/fi';
 import Container from '../ui/Container.jsx';
 import { SITE } from '../../config/site';
 
@@ -49,16 +49,6 @@ export default function Footer() {
           <li>
             <FiPhone className="footer-contact-icon" aria-hidden />
             <a href={`tel:${SITE.phoneTel}`}>{SITE.phone}</a>
-          </li>
-          <li>
-            <FiMail className="footer-contact-icon" aria-hidden />
-            <span className="footer-emails">
-              {SITE.emails.map((email) => (
-                <a key={email} href={`mailto:${email}`}>
-                  {email}
-                </a>
-              ))}
-            </span>
           </li>
           <li>
             <FiMapPin className="footer-contact-icon" aria-hidden />

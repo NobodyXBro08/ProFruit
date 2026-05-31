@@ -7,11 +7,10 @@ export interface ValidatedOrderCreate {
   items: ValidatedOrderItem[];
   userId: number;
   customerName: string;
-  customerEmail: string;
+  customerPhone: string;
   city: string;
   address: string;
   paymentMethod: string;
-  customerPhone?: string;
 }
 
 const PAYMENT_METHODS = new Set(["whatsapp", "efectivo"]);
@@ -27,10 +26,6 @@ function parseNonEmptyString(value: unknown, maxLen: number): string | null {
   const s = value.trim();
   if (!s || s.length > maxLen) return null;
   return s;
-}
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function mergeItems(raw: { productId: number; quantity: number }[]): ValidatedOrderItem[] {
@@ -59,9 +54,9 @@ export function validateOrderCreate(
     return { ok: false, error: "El nombre del comprador es obligatorio." };
   }
 
-  const customerEmailRaw = parseNonEmptyString(o.customerEmail ?? o.customer_email, 191);
-  if (!customerEmailRaw || !isValidEmail(customerEmailRaw.toLowerCase())) {
-    return { ok: false, error: "El correo electrónico es obligatorio y debe ser válido." };
+  const customerPhone = parseNonEmptyString(o.customerPhone ?? o.customer_phone, 64);
+  if (!customerPhone) {
+    return { ok: false, error: "El teléfono de contacto es obligatorio." };
   }
 
   const city = parseNonEmptyString(o.city, 120);
@@ -78,8 +73,6 @@ export function validateOrderCreate(
   if (!paymentMethodRaw || !PAYMENT_METHODS.has(paymentMethodRaw)) {
     return { ok: false, error: "Selecciona un método de pago válido." };
   }
-
-  const customerPhone = parseNonEmptyString(o.customerPhone ?? o.customer_phone, 64) ?? undefined;
 
   const itemsRaw = o.items;
   if (!Array.isArray(itemsRaw) || itemsRaw.length === 0) {
@@ -110,11 +103,10 @@ export function validateOrderCreate(
       items: mergeItems(parsedLines),
       userId: uid,
       customerName,
-      customerEmail: customerEmailRaw.toLowerCase(),
+      customerPhone,
       city,
       address,
       paymentMethod: paymentMethodRaw,
-      customerPhone,
     },
   };
 }

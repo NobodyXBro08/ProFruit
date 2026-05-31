@@ -6,7 +6,7 @@ import { SITE } from '../config/site';
  * @param {object} params
  * @param {number} params.orderId
  * @param {string} params.customerName
- * @param {string} params.customerEmail
+ * @param {string} params.customerPhone
  * @param {string} params.city
  * @param {string} params.address
  * @param {string} params.paymentMethod
@@ -16,7 +16,7 @@ import { SITE } from '../config/site';
 export function buildWhatsAppOrderMessage({
   orderId,
   customerName,
-  customerEmail,
+  customerPhone,
   city,
   address,
   paymentMethod,
@@ -32,7 +32,7 @@ export function buildWhatsAppOrderMessage({
     '',
     `Pedido #${orderId}`,
     `Nombre: ${customerName}`,
-    `Correo: ${customerEmail}`,
+    `Teléfono: ${customerPhone}`,
     `Ciudad: ${city}`,
     `Dirección: ${address}`,
     `Pago: ${paymentMethodLabel(paymentMethod)}`,
