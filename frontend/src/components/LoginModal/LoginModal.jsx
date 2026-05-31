@@ -129,7 +129,14 @@ export default function LoginModal({ isOpen, onClose }) {
             </div>
           </label>
 
-          {error && <p className="login-modal-msg login-modal-msg--error">{error}</p>}
+          {error && (
+            <div className="login-modal-msg login-modal-msg--error" role="alert">
+              <p className="login-modal-msg-main">{error.split(' — ')[0]}</p>
+              {error.includes(' — ') ? (
+                <p className="login-modal-msg-detail">{error.split(' — ').slice(1).join(' — ')}</p>
+              ) : null}
+            </div>
+          )}
           {registerOk && <p className="login-modal-msg login-modal-msg--success">{registerOk}</p>}
 
           <button type="submit" className="login-modal-submit" disabled={loading}>

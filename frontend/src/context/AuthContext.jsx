@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api } from '../config/api';
+import { formatApiError } from '../utils/apiError';
 
 const AuthContext = createContext(null);
 
@@ -42,6 +43,7 @@ function loadSession() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => loadSession());
   const [sessionReady, setSessionReady] = useState(false);
+  const [sessionError, setSessionError] = useState(null);
 
   useEffect(() => {
     try {
@@ -65,11 +67,17 @@ export function AuthProvider({ children }) {
         const res = await fetch(api('/api/me'), {
           headers: { Authorization: `Bearer ${user.token}` },
         });
-        if (!res.ok) throw new Error('invalid');
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          const message = formatApiError(data, res.status);
+          console.warn('[Auth] Sesión inválida:', { status: res.status, body: data });
+          throw new Error(message);
+        }
         const data = await res.json();
         const uid = normalizeUserId(data.user?.id);
-        if (!data.user || uid === null) throw new Error('invalid');
+        if (!data.user || uid === null) throw new Error('Respuesta de /api/me inválida.');
         if (!cancelled) {
+          setSessionError(null);
           setUser((prev) =>
             prev
               ? {
@@ -81,8 +89,13 @@ export function AuthProvider({ children }) {
               : null,
           );
         }
-      } catch {
-        if (!cancelled) setUser(null);
+      } catch (err) {
+        if (!cancelled) {
+          setUser(null);
+          if (err instanceof Error && err.message) {
+            setSessionError(err.message);
+          }
+        }
       } finally {
         if (!cancelled) setSessionReady(true);
       }
@@ -95,20 +108,37 @@ export function AuthProvider({ children }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- solo al montar
 
   const login = useCallback(async (username, password) => {
-    const res = await fetch(api('/api/login'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
+    let res;
+    try {
+      res = await fetch(api('/api/login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+    } catch (networkErr) {
+      console.error('[Auth] Login — error de red:', networkErr);
+      throw new Error('No se pudo conectar con el servidor. Revisa tu conexión o REACT_APP_API_URL.');
+    }
+
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(data.error || data.message || 'No se pudo iniciar sesión.');
+      const message = formatApiError(data, res.status);
+      console.error('[Auth] Login fallido:', { status: res.status, body: data });
+      const err = new Error(message);
+      err.status = res.status;
+      err.api = data;
+      throw err;
     }
+
     const uid = normalizeUserId(data.user?.id);
     const token = typeof data.token === 'string' ? data.token.trim() : '';
     if (!data.user || uid === null || !token || typeof data.user.username !== 'string' || !String(data.user.username).trim()) {
-      throw new Error('Respuesta del servidor inválida.');
+      console.error('[Auth] Login — respuesta incompleta:', data);
+      throw new Error(
+        'Respuesta del servidor incompleta (falta token o usuario). ¿JWT_SECRET configurado en Railway?',
+      );
     }
+
     const u = data.user;
     const session = {
       id: uid,
@@ -119,25 +149,36 @@ export function AuthProvider({ children }) {
       ...(u.phone && { phone: u.phone }),
       ...(u.shippingAddress && { shippingAddress: u.shippingAddress }),
     };
+    setSessionError(null);
     setUser(session);
     setSessionReady(true);
     return data;
   }, []);
 
   const register = useCallback(async (payload) => {
-    const res = await fetch(api('/api/register'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(data.error || data.message || 'No se pudo registrar.');
+    let res;
+    try {
+      res = await fetch(api('/api/register'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (networkErr) {
+      console.error('[Auth] Register — error de red:', networkErr);
+      throw new Error('No se pudo conectar con el servidor.');
     }
-    return data;
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(formatApiError(data, res.status));
+    }
+    return res.json().catch(() => ({}));
   }, []);
 
-  const logout = useCallback(() => setUser(null), []);
+  const logout = useCallback(() => {
+    setUser(null);
+    setSessionError(null);
+  }, []);
 
   const authFetch = useCallback(
     async (path, options = {}) => {
@@ -159,8 +200,8 @@ export function AuthProvider({ children }) {
   const isAdmin = user?.role === 'admin';
 
   const value = useMemo(
-    () => ({ user, login, register, logout, authFetch, isAdmin, sessionReady }),
-    [user, login, register, logout, authFetch, isAdmin, sessionReady],
+    () => ({ user, login, register, logout, authFetch, isAdmin, sessionReady, sessionError }),
+    [user, login, register, logout, authFetch, isAdmin, sessionReady, sessionError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

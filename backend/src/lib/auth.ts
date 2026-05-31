@@ -30,6 +30,11 @@ export function validateCredentials(
   return { ok: true };
 }
 
+function isUnknownColumnError(error: unknown, column: string): boolean {
+  const e = error as { code?: string; sqlMessage?: string };
+  return e?.code === "ER_BAD_FIELD_ERROR" && (e.sqlMessage?.includes(column) ?? false);
+}
+
 export type UserAuthRow = {
   id: number;
   password_hash: string;
@@ -37,23 +42,44 @@ export type UserAuthRow = {
 };
 
 export async function findUserByUsername(username: string): Promise<UserAuthRow | null> {
-  const rows = await query<Record<string, unknown>>(
-    "SELECT id, password_hash, role FROM users WHERE username = ? LIMIT 1",
-    [username]
-  );
-  const row = rows[0];
-  if (!row) return null;
-  return {
-    id: Number(row.id),
-    password_hash: String(row.password_hash),
-    role: normalizeRole(row.role),
-  };
+  try {
+    const rows = await query<Record<string, unknown>>(
+      "SELECT id, password_hash, role FROM users WHERE username = ? LIMIT 1",
+      [username]
+    );
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      id: Number(row.id),
+      password_hash: String(row.password_hash),
+      role: normalizeRole(row.role),
+    };
+  } catch (error) {
+    if (!isUnknownColumnError(error, "role")) throw error;
+
+    const rows = await query<Record<string, unknown>>(
+      "SELECT id, password_hash FROM users WHERE username = ? LIMIT 1",
+      [username]
+    );
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      id: Number(row.id),
+      password_hash: String(row.password_hash),
+      role: "client",
+    };
+  }
 }
 
 export async function createUser(username: string, passwordHash: string, role: UserRole = "client"): Promise<void> {
-  await pool.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", [
-    username,
-    passwordHash,
-    role,
-  ]);
+  try {
+    await pool.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", [
+      username,
+      passwordHash,
+      role,
+    ]);
+  } catch (error) {
+    if (!isUnknownColumnError(error, "role")) throw error;
+    await pool.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", [username, passwordHash]);
+  }
 }

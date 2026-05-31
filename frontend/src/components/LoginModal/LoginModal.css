@@ -175,6 +175,19 @@
   color: var(--color-danger);
 }
 
+.login-modal-msg-main {
+  margin: 0;
+  font-weight: 600;
+}
+
+.login-modal-msg-detail {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  opacity: 0.92;
+  font-weight: 400;
+}
+
 .login-modal-msg--success {
   background: var(--color-success-bg);
   color: var(--color-brand);

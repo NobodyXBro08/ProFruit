@@ -5,6 +5,7 @@ import {
   hashPassword,
   verifyPassword,
 } from "./auth";
+import { apiErrorFromUnknown } from "./apiError";
 import { corsHeaders } from "./cors";
 import { readJsonBody } from "./http";
 import { parseValidatedCredentials } from "./parseValidatedCredentials";
@@ -23,7 +24,13 @@ export async function handleRegisterPost(request: Request): Promise<NextResponse
 
     const { username, password } = v.data;
 
-    const existingUser = await findUserByUsername(username);
+    let existingUser;
+    try {
+      existingUser = await findUserByUsername(username);
+    } catch (dbError) {
+      return apiErrorFromUnknown("register/findUser", dbError);
+    }
+
     if (existingUser) {
       return NextResponse.json(
         { error: "El nombre de usuario ya está registrado." },
@@ -35,7 +42,6 @@ export async function handleRegisterPost(request: Request): Promise<NextResponse
     try {
       await createUser(username, passwordHash);
     } catch (e) {
-      console.error("createUser:", e);
       const code = (e as { code?: string })?.code;
       if (code === "ER_DUP_ENTRY") {
         return NextResponse.json(
@@ -43,13 +49,12 @@ export async function handleRegisterPost(request: Request): Promise<NextResponse
           { status: 409, headers: corsHeaders }
         );
       }
-      throw e;
+      return apiErrorFromUnknown("register/createUser", e);
     }
 
     return NextResponse.json({ message: "Usuario registrado correctamente" }, { status: 201, headers: corsHeaders });
   } catch (e) {
-    console.error("handleRegisterPost:", e);
-    return NextResponse.json({ error: "Error interno del servidor." }, { status: 500, headers: corsHeaders });
+    return apiErrorFromUnknown("register", e);
   }
 }
 
@@ -61,15 +66,28 @@ export async function handleLoginPost(request: Request): Promise<NextResponse> {
     const user = parsed.username;
     const pass = parsed.password;
 
-    const row = await findUserByUsername(user);
+    let row;
+    try {
+      row = await findUserByUsername(user);
+    } catch (dbError) {
+      return apiErrorFromUnknown("login/findUser", dbError);
+    }
+
     if (!row || !(await verifyPassword(pass, row.password_hash))) {
       return NextResponse.json({ error: "Error en la autenticación" }, { status: 401, headers: corsHeaders });
+    }
+
+    let token: string;
+    try {
+      token = signToken({ sub: row.id, username: user, role: row.role });
+    } catch (tokenError) {
+      return apiErrorFromUnknown("login/signToken", tokenError, 503);
     }
 
     return NextResponse.json(
       {
         message: "Autenticación satisfactoria",
-        token: signToken({ sub: row.id, username: user, role: row.role }),
+        token,
         user: {
           id: row.id,
           username: user,
@@ -79,7 +97,6 @@ export async function handleLoginPost(request: Request): Promise<NextResponse> {
       { status: 200, headers: corsHeaders }
     );
   } catch (e) {
-    console.error("handleLoginPost:", e);
-    return NextResponse.json({ error: "Error interno del servidor." }, { status: 500, headers: corsHeaders });
+    return apiErrorFromUnknown("login", e);
   }
 }
