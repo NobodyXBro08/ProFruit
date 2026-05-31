@@ -5,6 +5,8 @@ import { corsHeaders, corsOptionsResponse } from "@/lib/cors";
 import { readJsonBody } from "@/lib/http";
 import { deductStockForConfirmedOrder, OrderError } from "@/lib/orders";
 import { parsePaymentMethod } from "@/lib/orderValidators";
+import { requireAdmin } from "@/lib/requireAuth";
+import { apiErrorFromUnknown } from "@/lib/apiError";
 
 export function OPTIONS() {
   return corsOptionsResponse();
@@ -25,8 +27,11 @@ function paymentProviderFromNotes(notes: unknown): string {
   return match?.[1] ?? "manual";
 }
 
-/** Uso interno / admin: marca un pedido pendiente como pagado. */
+/** Admin: marca un pedido pendiente como pagado. */
 export async function POST(request: Request) {
+  const auth = requireAdmin(request);
+  if (!auth.ok) return auth.response;
+
   try {
     const raw = await readJsonBody(request);
     if (!raw.ok) return raw.response;
@@ -95,7 +100,6 @@ export async function POST(request: Request) {
     if (error instanceof OrderError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode, headers: corsHeaders });
     }
-    console.error("PAY ERROR:", error);
-    return NextResponse.json({ error: "Error interno del servidor." }, { status: 500, headers: corsHeaders });
+    return apiErrorFromUnknown("pay", error);
   }
 }

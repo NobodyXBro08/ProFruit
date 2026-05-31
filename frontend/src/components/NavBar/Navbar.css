@@ -478,7 +478,13 @@
 
   .navbar-links-desktop {
     display: block;
+    flex: 1;
     margin-left: var(--space-2);
+    margin-right: var(--space-2);
+  }
+
+  .navbar-pills {
+    justify-content: center;
   }
 
   .navbar-btn-account--desktop {

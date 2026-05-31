@@ -3,14 +3,12 @@ import { Link } from 'react-router-dom';
 import {
   FaRegUser,
   FaTimes,
-  FaSearch,
   FaHome,
   FaShoppingBag,
   FaEllipsisH,
 } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
-import { useCatalog } from '../../context/CatalogContext.jsx';
 import { useLoginModal } from '../../context/LoginModalContext.jsx';
 import { useCartUi } from '../../context/CartUiContext.jsx';
 import ProFruitLogo from '../../assets/images/ProFruit.png';
@@ -19,8 +17,6 @@ import './Navbar.css';
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const { searchQuery, setSearchQuery } = useCatalog();
   const { clearCart } = useCart();
   const { user, logout, isAdmin } = useAuth();
   const { openLogin } = useLoginModal();
@@ -76,7 +72,7 @@ export default function Navbar() {
       </li>
       {isAdmin ? (
         <li>
-          <Link to="/admin/productos" onClick={closeMenu}>
+          <Link to="/admin/pedidos" onClick={closeMenu}>
             Admin
           </Link>
         </li>
@@ -110,49 +106,11 @@ export default function Navbar() {
             </span>
           </Link>
 
-          <label className="navbar-search navbar-search--desktop" htmlFor="catalog-search">
-            <span className="visually-hidden">Buscar en la tienda</span>
-            <FaSearch className="navbar-search-icon" aria-hidden size={15} />
-            <input
-              id="catalog-search"
-              type="search"
-              className="navbar-search-input"
-              placeholder="Buscar productos…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              autoComplete="off"
-            />
-            {searchQuery ? (
-              <button
-                type="button"
-                className="navbar-search-clear"
-                aria-label="Limpiar búsqueda"
-                onClick={() => setSearchQuery('')}
-              >
-                ×
-              </button>
-            ) : null}
-          </label>
-
           <nav className="navbar-links-desktop" aria-label="Secciones">
             <ul className="navbar-pills">{navLinks}</ul>
           </nav>
 
           <div className="navbar-actions-row">
-            <button
-              type="button"
-              className="navbar-icon-btn navbar-search-toggle"
-              aria-expanded={searchOpen}
-              aria-controls="navbar-search-mobile"
-              aria-label={searchOpen ? 'Cerrar búsqueda' : 'Buscar'}
-              onClick={() => {
-                setSearchOpen((v) => !v);
-                closeMenu();
-              }}
-            >
-              <FaSearch size={18} />
-            </button>
-
             {user ? (
               <div className="navbar-account navbar-account--desktop">
                 <span className="navbar-account-name" title={user.fullName || user.username}>
@@ -212,35 +170,6 @@ export default function Navbar() {
         <button type="button" className="navbar-overlay" aria-label="Cerrar menú" onClick={closeMenu} />
       ) : null}
 
-      <div
-        id="navbar-search-mobile"
-        className={`navbar-search-mobile ${searchOpen ? 'navbar-search-mobile--open' : ''}`}
-        hidden={!searchOpen}
-      >
-        <label className="navbar-search navbar-search--mobile" htmlFor="catalog-search-mobile">
-          <FaSearch className="navbar-search-icon" aria-hidden size={16} />
-          <input
-            id="catalog-search-mobile"
-            type="search"
-            className="navbar-search-input"
-            placeholder="Buscar productos…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            autoComplete="off"
-          />
-          {searchQuery ? (
-            <button
-              type="button"
-              className="navbar-search-clear"
-              aria-label="Limpiar"
-              onClick={() => setSearchQuery('')}
-            >
-              ×
-            </button>
-          ) : null}
-        </label>
-      </div>
-
       <nav className="navbar-dock" aria-label="Accesos rápidos móvil">
         <Link className="navbar-dock-item" to="/#inicio" onClick={closeMenu}>
           <FaHome size={22} aria-hidden />
@@ -255,10 +184,7 @@ export default function Navbar() {
           className={`navbar-dock-item ${isMenuOpen ? 'navbar-dock-item--active' : ''}`}
           aria-expanded={isMenuOpen}
           aria-controls="navbar-flyout"
-          onClick={() => {
-            setSearchOpen(false);
-            setIsMenuOpen((v) => !v);
-          }}
+          onClick={() => setIsMenuOpen((v) => !v)}
         >
           <FaEllipsisH size={22} aria-hidden />
           <span>Más</span>

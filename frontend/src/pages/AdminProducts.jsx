@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaArrowLeft, FaEdit, FaPlus, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext.jsx';
 import { formatPrice } from '../utils/formatPrice';
+import AdminLayout from '../components/AdminLayout.jsx';
 import Container from '../components/ui/Container.jsx';
 import Button from '../components/ui/Button.jsx';
 import './AdminProducts.css';
@@ -130,14 +131,11 @@ export default function AdminProducts() {
   return (
     <div className="admin-products">
       <Container className="admin-products-container">
-        <header className="admin-products-header">
-          <Link to="/" className="admin-products-back">
-            <FaArrowLeft aria-hidden /> Volver a la tienda
-          </Link>
-          <h1>Administración de productos</h1>
-          <p>Solo usuarios con rol administrador pueden gestionar el catálogo.</p>
-        </header>
+        <Link to="/" className="admin-products-back">
+          <FaArrowLeft aria-hidden /> Volver a la tienda
+        </Link>
 
+        <AdminLayout title="Productos" subtitle="Gestiona el catálogo: crear, editar y eliminar productos.">
         <div className="admin-products-layout">
           <section className="admin-products-list" aria-label="Listado de productos">
             <div className="admin-products-list-head">
@@ -239,6 +237,7 @@ export default function AdminProducts() {
             </form>
           </section>
         </div>
+        </AdminLayout>
       </Container>
     </div>
   );

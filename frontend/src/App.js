@@ -14,6 +14,7 @@ import Home from './pages/Home.jsx';
 import ProductDetail from './pages/ProductDetail.jsx';
 import Checkout from './pages/Checkout.jsx';
 import AdminProducts from './pages/AdminProducts.jsx';
+import AdminOrders from './pages/AdminOrders.jsx';
 import RequireAdmin from './components/RequireAdmin.jsx';
 import './App.css';
 
@@ -60,6 +61,14 @@ export default function App() {
                         <Route path="/" element={<Home />} />
                         <Route path="/producto/:id" element={<ProductDetail />} />
                         <Route path="/checkout" element={<Checkout />} />
+                        <Route
+                          path="/admin/pedidos"
+                          element={
+                            <RequireAdmin>
+                              <AdminOrders />
+                            </RequireAdmin>
+                          }
+                        />
                         <Route
                           path="/admin/productos"
                           element={

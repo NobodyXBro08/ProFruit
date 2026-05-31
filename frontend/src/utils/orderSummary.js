@@ -48,3 +48,9 @@ export function buildWhatsAppUrl(message) {
   const phone = SITE.phoneTel.replace(/\D/g, '');
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
+
+export function buildWhatsAppCustomerUrl(customerPhone, message) {
+  const digits = String(customerPhone ?? '').replace(/\D/g, '');
+  const phone = digits.length >= 10 ? digits : SITE.phoneTel.replace(/\D/g, '');
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+}
