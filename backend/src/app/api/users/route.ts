@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { hashPassword } from "@/lib/auth";
 import { corsHeaders, corsOptionsResponse } from "@/lib/cors";
 import { readJsonBody, parseQueryId } from "@/lib/http";
+import { requireAdmin } from "@/lib/requireAuth";
 import { deleteUser, getUserById, listUsers, updateUser } from "@/lib/users";
 
 function validateUpdateBody(body: unknown): { ok: true; data: { id: number; username: string; password?: string } } | { ok: false; error: string } {
@@ -35,6 +36,9 @@ export function OPTIONS() {
 }
 
 export async function GET(request: Request) {
+  const auth = requireAdmin(request);
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
 
@@ -64,6 +68,9 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const auth = requireAdmin(request);
+  if (!auth.ok) return auth.response;
+
   try {
     const raw = await readJsonBody(request);
     if (!raw.ok) return raw.response;
@@ -94,6 +101,9 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const auth = requireAdmin(request);
+  if (!auth.ok) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");

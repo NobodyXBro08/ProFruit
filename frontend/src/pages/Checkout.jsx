@@ -6,7 +6,6 @@ import { useCart } from '../context/CartContext.jsx';
 import { useLoginModal } from '../context/LoginModalContext.jsx';
 import { formatPrice } from '../utils/formatPrice';
 import { buildWhatsAppOrderMessage, buildWhatsAppUrl } from '../utils/orderSummary';
-import { api } from '../config/api';
 import { SITE } from '../config/site';
 import { PAYMENT_METHODS, paymentMethodLabel } from '../config/payments';
 import Container from '../components/ui/Container.jsx';
@@ -23,7 +22,7 @@ const emptyForm = {
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, authFetch } = useAuth();
   const { lines, subtotal, clearCart } = useCart();
   const { openLogin } = useLoginModal();
 
@@ -89,9 +88,8 @@ export default function Checkout() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(api('/api/orders'), {
+      const res = await authFetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
           customerName: form.customerName.trim(),

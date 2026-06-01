@@ -113,67 +113,6 @@
   text-transform: uppercase;
 }
 
-.navbar-search {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  background: var(--color-surface-warm);
-  border-radius: var(--radius-full);
-  padding: var(--space-2) var(--space-4);
-  flex: 1;
-  max-width: 400px;
-  min-width: 0;
-  border: 1px solid var(--color-border);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.navbar-search:focus-within {
-  border-color: var(--color-brand-muted);
-  box-shadow: 0 0 0 3px rgba(18, 72, 28, 0.08);
-}
-
-.navbar-search--desktop {
-  display: none;
-}
-
-.navbar-search--mobile {
-  width: 100%;
-  max-width: none;
-}
-
-.navbar-search-icon {
-  flex-shrink: 0;
-  color: var(--color-brand-muted);
-}
-
-.navbar-search-input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  color: var(--color-text);
-  outline: none;
-}
-
-.navbar-search-input::placeholder {
-  color: var(--color-text-muted);
-}
-
-.navbar-search-clear {
-  border: none;
-  background: rgba(18, 72, 28, 0.08);
-  color: var(--color-brand);
-  width: 1.65rem;
-  height: 1.65rem;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  font-size: 1.1rem;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
 .navbar-links-desktop {
   display: none;
 }
@@ -401,29 +340,6 @@
   color: var(--color-brand);
 }
 
-/* Búsqueda móvil bajo barra */
-.navbar-search-mobile {
-  position: fixed;
-  top: var(--navbar-height);
-  left: 0;
-  right: 0;
-  z-index: 997;
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-surface-elevated);
-  border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-120%);
-  opacity: 0;
-  pointer-events: none;
-  transition: transform var(--transition-base), opacity var(--transition-base);
-}
-
-.navbar-search-mobile--open {
-  transform: translateY(0);
-  opacity: 1;
-  pointer-events: auto;
-}
-
 /* Barra inferior móvil */
 .navbar-dock {
   display: flex;
@@ -474,18 +390,6 @@
 
 /* Desktop */
 @media (min-width: 900px) {
-  .navbar-search--desktop {
-    display: flex;
-  }
-
-  .navbar-search-toggle {
-    display: none !important;
-  }
-
-  .navbar-search-mobile {
-    display: none !important;
-  }
-
   .navbar-links-desktop {
     display: block;
     flex: 1;
@@ -520,12 +424,6 @@
 
   :root {
     --navbar-masthead-height: 4rem;
-  }
-}
-
-@media (max-width: 899px) {
-  .navbar-search-toggle {
-    display: flex;
   }
 }
 

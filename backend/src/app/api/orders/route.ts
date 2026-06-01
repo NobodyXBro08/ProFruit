@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import { corsHeaders, corsOptionsResponse } from "@/lib/cors";
 import { readJsonBody } from "@/lib/http";
-import { validateOrderCreate, validateOrderFinalize } from "@/lib/orderValidators";
-import { createOrder, finalizePaidOrder, OrderError } from "@/lib/orders";
+import { validateOrderCreate } from "@/lib/orderValidators";
+import { createOrder, OrderError } from "@/lib/orders";
+import { requireAuth } from "@/lib/requireAuth";
 
 export function OPTIONS() {
   return corsOptionsResponse();
 }
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request);
+  if (!auth.ok) return auth.response;
+
   try {
     const raw = await readJsonBody(request);
     if (!raw.ok) return raw.response;
@@ -18,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: v.error }, { status: 400, headers: corsHeaders });
     }
 
-    const order = await createOrder(v.data);
+    const order = await createOrder({ ...v.data, userId: auth.user.id });
     return NextResponse.json(order, { status: 201, headers: corsHeaders });
   } catch (error) {
     if (error instanceof OrderError) {
@@ -28,34 +32,6 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { error: "Error al crear el pedido.", details: message },
-      { status: 500, headers: corsHeaders }
-    );
-  }
-}
-
-export async function PATCH(request: Request) {
-  try {
-    const raw = await readJsonBody(request);
-    if (!raw.ok) return raw.response;
-
-    const v = validateOrderFinalize(raw.body);
-    if (!v.ok) {
-      return NextResponse.json({ error: v.error }, { status: 400, headers: corsHeaders });
-    }
-
-    await finalizePaidOrder(v.id);
-    return NextResponse.json(
-      { message: "Pedido marcado como pagado. Stock total actualizado.", id: v.id, status: "paid" },
-      { status: 200, headers: corsHeaders }
-    );
-  } catch (error) {
-    if (error instanceof OrderError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode, headers: corsHeaders });
-    }
-    console.error(error);
-    const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json(
-      { error: "Error al actualizar el pedido.", details: message },
       { status: 500, headers: corsHeaders }
     );
   }

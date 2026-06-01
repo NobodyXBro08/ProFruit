@@ -148,28 +148,3 @@ export async function deductStockForConfirmedOrder(conn: PoolConnection, orderId
     }
   }
 }
-
-export async function finalizePaidOrder(orderId: number): Promise<void> {
-  return withTransaction(async (conn) => {
-    const [orders] = await conn.query<RowDataPacket[]>(
-      "SELECT id, status, total FROM orders WHERE id = ? FOR UPDATE",
-      [orderId]
-    );
-    if (!orders.length) throw new OrderError("Pedido no encontrado.", 404);
-    const st = String(orders[0].status);
-    if (st !== "pending") {
-      throw new OrderError("Solo se pueden concretar pedidos en estado pendiente.", 409);
-    }
-
-    const orderTotal = Number(orders[0].total);
-
-    await deductStockForConfirmedOrder(conn, orderId);
-
-    await conn.query<ResultSetHeader>(
-      "INSERT INTO payments (order_id, provider, amount, status) VALUES (?, ?, ?, ?)",
-      [orderId, "manual", orderTotal, "paid"]
-    );
-
-    await conn.query("UPDATE orders SET status = 'paid' WHERE id = ?", [orderId]);
-  });
-}
