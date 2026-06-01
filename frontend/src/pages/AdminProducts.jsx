@@ -43,7 +43,7 @@ export default function AdminProducts() {
   }, [authFetch]);
 
   useEffect(() => {
-    document.title = 'Admin · Productos · ProFruit';
+    document.title = 'Admin · Catálogo de productos · ProFruit';
     loadProducts();
   }, [loadProducts]);
 
@@ -135,11 +135,11 @@ export default function AdminProducts() {
           <FaArrowLeft aria-hidden /> Volver a la tienda
         </Link>
 
-        <AdminLayout title="Productos" subtitle="Gestiona el catálogo: crear, editar y eliminar productos.">
+        <AdminLayout title="Catálogo de productos" subtitle="Gestiona el catálogo: crear, editar y eliminar productos.">
         <div className="admin-products-layout">
-          <section className="admin-products-list" aria-label="Listado de productos">
+          <section className="admin-products-list" aria-label="Listado del catálogo">
             <div className="admin-products-list-head">
-              <h2>Productos ({products.length})</h2>
+              <h2>En catálogo ({products.length})</h2>
               <Button type="button" variant="primary" size="sm" onClick={startCreate}>
                 <FaPlus aria-hidden /> Nuevo
               </Button>

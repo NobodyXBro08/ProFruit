@@ -79,7 +79,7 @@ export default function Navbar() {
           </li>
           <li>
             <Link to="/admin/productos" onClick={closeMenu} className="navbar-admin-link">
-              Catálogo
+              Catálogo de productos
             </Link>
           </li>
         </>

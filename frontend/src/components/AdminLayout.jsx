@@ -13,7 +13,7 @@ export default function AdminLayout({ title, subtitle, children }) {
           Pedidos
         </NavLink>
         <NavLink to="/admin/productos" className={({ isActive }) => `admin-tab${isActive ? ' admin-tab--active' : ''}`}>
-          Productos
+          Catálogo de productos
         </NavLink>
       </nav>
 

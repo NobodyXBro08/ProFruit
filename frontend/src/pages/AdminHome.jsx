@@ -26,7 +26,7 @@ export default function AdminHome() {
             </Link>
             <Link to="/admin/productos" className="admin-home-card">
               <FaBoxOpen className="admin-home-card-icon" aria-hidden />
-              <h2>Productos</h2>
+              <h2>Catálogo de productos</h2>
               <p>Crea, edita y elimina productos del catálogo, precios y stock.</p>
             </Link>
           </div>
