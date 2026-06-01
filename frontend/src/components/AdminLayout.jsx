@@ -6,6 +6,9 @@ export default function AdminLayout({ title, subtitle, children }) {
   return (
     <div className="admin-layout">
       <nav className="admin-tabs" aria-label="Secciones de administración">
+        <NavLink to="/admin" end className={({ isActive }) => `admin-tab${isActive ? ' admin-tab--active' : ''}`}>
+          Inicio
+        </NavLink>
         <NavLink to="/admin/pedidos" className={({ isActive }) => `admin-tab${isActive ? ' admin-tab--active' : ''}`}>
           Pedidos
         </NavLink>

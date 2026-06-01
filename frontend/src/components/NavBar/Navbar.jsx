@@ -71,11 +71,18 @@ export default function Navbar() {
         </Link>
       </li>
       {isAdmin ? (
-        <li>
-          <Link to="/admin/pedidos" onClick={closeMenu}>
-            Admin
-          </Link>
-        </li>
+        <>
+          <li>
+            <Link to="/admin/pedidos" onClick={closeMenu} className="navbar-admin-link">
+              Pedidos
+            </Link>
+          </li>
+          <li>
+            <Link to="/admin/productos" onClick={closeMenu} className="navbar-admin-link">
+              Catálogo
+            </Link>
+          </li>
+        </>
       ) : null}
     </>
   );

@@ -204,6 +204,16 @@
   color: var(--color-brand);
 }
 
+.navbar-admin-link {
+  color: var(--color-brand);
+  background: rgba(125, 216, 122, 0.12);
+}
+
+.navbar-admin-link:hover {
+  background: rgba(125, 216, 122, 0.22);
+  color: var(--color-brand);
+}
+
 .navbar-actions-row {
   display: flex;
   align-items: center;
