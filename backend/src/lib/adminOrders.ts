@@ -1,5 +1,26 @@
 import { query } from "./db";
 
+const columnCache = new Map<string, Set<string>>();
+
+async function getTableColumns(table: string): Promise<Set<string>> {
+  const cached = columnCache.get(table);
+  if (cached) return cached;
+
+  const rows = await query<{ COLUMN_NAME: string }>(
+    `SELECT COLUMN_NAME
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+    [table]
+  );
+  const cols = new Set(rows.map((r) => String(r.COLUMN_NAME)));
+  columnCache.set(table, cols);
+  return cols;
+}
+
+function pickColumn(columns: Set<string>, name: string, alias: string, fallback: string): string {
+  return columns.has(name) ? `${alias}.${name}` : fallback;
+}
+
 export interface AdminOrderItem {
   productId: number;
   productName: string;
@@ -40,24 +61,35 @@ function parsePaymentMethod(notes: unknown): string {
 }
 
 export async function listOrdersForAdmin(): Promise<AdminOrder[]> {
+  const orderCols = await getTableColumns("orders");
+  const itemCols = await getTableColumns("order_items");
+
+  const customerName = pickColumn(orderCols, "customer_name", "o", "''");
+  const customerPhone = pickColumn(orderCols, "customer_phone", "o", "''");
+  const shippingAddress = pickColumn(orderCols, "shipping_address", "o", "NULL");
+  const notes = pickColumn(orderCols, "notes", "o", "NULL");
+  const createdAt = pickColumn(orderCols, "created_at", "o", "NULL");
+  const unitPrice = itemCols.has("unit_price") ? "oi.unit_price" : "COALESCE(p.price, 0)";
+  const orderBy = orderCols.has("created_at") ? "o.created_at DESC, o.id DESC" : "o.id DESC";
+
   const rows = await query<Record<string, unknown>>(
     `SELECT
        o.id,
        o.status,
        o.total,
-       o.customer_name,
-       o.customer_phone,
-       o.shipping_address,
-       o.notes,
-       o.created_at,
+       ${customerName} AS customer_name,
+       ${customerPhone} AS customer_phone,
+       ${shippingAddress} AS shipping_address,
+       ${notes} AS notes,
+       ${createdAt} AS created_at,
        oi.product_id,
        oi.quantity,
-       oi.unit_price,
+       ${unitPrice} AS unit_price,
        p.name AS product_name
      FROM orders o
      LEFT JOIN order_items oi ON oi.order_id = o.id
      LEFT JOIN products p ON p.id = oi.product_id
-     ORDER BY o.created_at DESC, o.id DESC, oi.id ASC`
+     ORDER BY ${orderBy}, oi.id ASC`
   );
 
   const byId = new Map<number, AdminOrder>();
@@ -76,7 +108,12 @@ export async function listOrdersForAdmin(): Promise<AdminOrder[]> {
         city: shipping.city,
         address: shipping.address,
         paymentMethod: parsePaymentMethod(row.notes),
-        createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at ?? ""),
+        createdAt:
+          row.created_at instanceof Date
+            ? row.created_at.toISOString()
+            : row.created_at
+              ? String(row.created_at)
+              : "",
         items: [],
       };
       byId.set(id, order);
@@ -87,7 +124,7 @@ export async function listOrdersForAdmin(): Promise<AdminOrder[]> {
         productId: Number(row.product_id),
         productName: String(row.product_name ?? `Producto #${row.product_id}`),
         quantity: Number(row.quantity),
-        unitPrice: Number(row.unit_price),
+        unitPrice: Number(row.unit_price ?? 0),
       });
     }
   }

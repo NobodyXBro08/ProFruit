@@ -25,10 +25,12 @@ export function mysqlErrorMeta(error: unknown): { code?: string; hint?: string }
   const code = e?.code;
   const sql = e?.sqlMessage ?? "";
 
-  if (code === "ER_BAD_FIELD_ERROR" && sql.includes("role")) {
+  if (code === "ER_BAD_FIELD_ERROR") {
+    const colMatch = sql.match(/Unknown column '([^']+)'/);
+    const col = colMatch?.[1] ?? "desconocida";
     return {
       code,
-      hint: "Falta la columna users.role. Ejecuta: ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'client';",
+      hint: `Falta la columna ${col} en la base de datos. Ejecuta docker/mysql/manual-migrations/complete-orders-schema.sql en Railway.`,
     };
   }
 
