@@ -47,6 +47,14 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     try {
+      localStorage.removeItem('profruit-auth-v1');
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
       if (user) localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
       else localStorage.removeItem(STORAGE_KEY);
     } catch {

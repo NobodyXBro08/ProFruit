@@ -73,6 +73,10 @@ export default function Checkout() {
       openLogin();
       return;
     }
+    if (!user.token) {
+      setError('Tu sesión es antigua. Pulsa Salir arriba, vuelve a entrar con tu usuario y contraseña, e intenta de nuevo.');
+      return;
+    }
 
     const userId = Number(user.id);
     if (!Number.isInteger(userId) || userId < 1) {
@@ -102,6 +106,9 @@ export default function Checkout() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('Sesión expirada o sin token. Cierra sesión, vuelve a entrar e intenta de nuevo.');
+        }
         const base = data.error || data.message || 'No se pudo crear el pedido.';
         const extra = typeof data.details === 'string' && data.details.trim() ? ` (${data.details.trim()})` : '';
         throw new Error(`${base}${extra}`);
