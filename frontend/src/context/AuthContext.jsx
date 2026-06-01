@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../config/api';
 import { formatApiError } from '../utils/apiError';
 
@@ -14,6 +14,17 @@ function normalizeUserId(value) {
 
 function normalizeRole(value) {
   return value === 'admin' ? 'admin' : 'client';
+}
+
+function readStoredToken() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return '';
+    const o = JSON.parse(raw);
+    return typeof o?.token === 'string' ? o.token.trim() : '';
+  } catch {
+    return '';
+  }
 }
 
 function loadSession() {
@@ -86,16 +97,16 @@ export function AuthProvider({ children }) {
         if (!data.user || uid === null) throw new Error('Respuesta de /api/me inválida.');
         if (!cancelled) {
           setSessionError(null);
-          setUser((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  id: uid,
-                  username: String(data.user.username).trim(),
-                  role: normalizeRole(data.user.role),
-                }
-              : null,
-          );
+          setUser((prev) => {
+            if (!prev?.token) return null;
+            return {
+              ...prev,
+              id: uid,
+              username: String(data.user.username).trim(),
+              role: normalizeRole(data.user.role),
+              token: prev.token,
+            };
+          });
         }
       } catch (err) {
         if (!cancelled) {
@@ -188,28 +199,36 @@ export function AuthProvider({ children }) {
     setSessionError(null);
   }, []);
 
-  const authFetch = useCallback(
-    async (path, options = {}) => {
-      if (!user?.token) {
-        throw new Error('Debes iniciar sesión.');
-      }
-      const headers = {
-        ...(options.headers || {}),
-        Authorization: `Bearer ${user.token}`,
-      };
-      if (options.body && !headers['Content-Type']) {
-        headers['Content-Type'] = 'application/json';
-      }
-      return fetch(api(path), { ...options, headers });
-    },
-    [user?.token],
+  const tokenRef = useRef(user?.token ?? '');
+  useEffect(() => {
+    tokenRef.current = (user?.token || readStoredToken()).trim();
+  }, [user?.token]);
+
+  const getAuthToken = useCallback(
+    () => (tokenRef.current || readStoredToken()).trim(),
+    [],
   );
+
+  const authFetch = useCallback(async (path, options = {}) => {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error('Debes iniciar sesión.');
+    }
+    const headers = {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${token}`,
+    };
+    if (options.body && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+    return fetch(api(path), { ...options, headers });
+  }, []);
 
   const isAdmin = user?.role === 'admin';
 
   const value = useMemo(
-    () => ({ user, login, register, logout, authFetch, isAdmin, sessionReady, sessionError }),
-    [user, login, register, logout, authFetch, isAdmin, sessionReady, sessionError],
+    () => ({ user, login, register, logout, authFetch, getAuthToken, isAdmin, sessionReady, sessionError }),
+    [user, login, register, logout, authFetch, getAuthToken, isAdmin, sessionReady, sessionError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

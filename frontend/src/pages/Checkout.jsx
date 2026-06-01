@@ -22,7 +22,7 @@ const emptyForm = {
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { user, authFetch } = useAuth();
+  const { user, authFetch, getAuthToken } = useAuth();
   const { lines, subtotal, clearCart } = useCart();
   const { openLogin } = useLoginModal();
 
@@ -73,7 +73,7 @@ export default function Checkout() {
       openLogin();
       return;
     }
-    if (!user.token) {
+    if (!getAuthToken()) {
       setError('Tu sesión es antigua. Pulsa Salir arriba, vuelve a entrar con tu usuario y contraseña, e intenta de nuevo.');
       return;
     }
