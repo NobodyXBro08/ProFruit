@@ -20,14 +20,19 @@
 
 .admin-tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-2);
   margin-bottom: var(--space-6);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-1);
+  scrollbar-width: thin;
 }
 
 .admin-tab {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-full);
   border: 1px solid var(--color-border-strong);
@@ -36,7 +41,15 @@
   font-size: var(--text-sm);
   font-weight: 700;
   text-decoration: none;
+  white-space: nowrap;
   transition: background var(--transition-base), color var(--transition-base), border-color var(--transition-base);
+}
+
+@media (min-width: 720px) {
+  .admin-tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
 }
 
 .admin-tab:hover {

@@ -1,8 +1,14 @@
 .product-detail-page {
-  padding: var(--space-8) 0 var(--space-12);
+  padding: var(--space-6) 0 var(--space-10);
   font-family: var(--font-sans);
   background: linear-gradient(180deg, #fffbf7 0%, #f6faf7 100%);
   min-height: 60vh;
+}
+
+@media (min-width: 768px) {
+  .product-detail-page {
+    padding: var(--space-8) 0 var(--space-12);
+  }
 }
 
 .product-detail-container {

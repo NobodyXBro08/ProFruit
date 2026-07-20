@@ -11,6 +11,12 @@
   pointer-events: none;
 }
 
+@media (max-width: 899px) {
+  .toast-viewport {
+    bottom: calc(var(--navbar-dock-height, 4.25rem) + var(--space-4) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .toast-item {
   pointer-events: auto;
   display: flex;

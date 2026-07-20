@@ -35,14 +35,28 @@
 
 .navbar-ribbon-text {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   color: var(--color-text-secondary);
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
+  line-height: 1.2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+@media (min-width: 520px) {
+  .navbar-ribbon-text {
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    display: block;
+    -webkit-line-clamp: unset;
+    text-overflow: ellipsis;
+  }
 }
 
 /* Barra principal clara */

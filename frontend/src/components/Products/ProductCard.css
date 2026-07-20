@@ -185,6 +185,23 @@
   gap: var(--space-2);
 }
 
+@media (max-width: 899px) and (min-width: 520px) {
+  .product-card__actions {
+    flex-direction: column;
+  }
+
+  .product-card__detail-btn,
+  .product-card__cart {
+    width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .product-card__actions {
+    flex-direction: column;
+  }
+}
+
 .product-card__detail-btn {
   flex: 1;
   min-height: 2.5rem;

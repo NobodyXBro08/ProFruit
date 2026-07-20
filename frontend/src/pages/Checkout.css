@@ -1,8 +1,14 @@
 .checkout-page {
   min-height: 60vh;
-  padding: var(--space-8) 0 var(--space-12);
+  padding: var(--space-6) 0 var(--space-10);
   font-family: var(--font-sans);
   background: linear-gradient(180deg, #fffbf7 0%, #f6faf7 100%);
+}
+
+@media (min-width: 768px) {
+  .checkout-page {
+    padding: var(--space-8) 0 var(--space-12);
+  }
 }
 
 .checkout-container {
@@ -318,8 +324,15 @@
 }
 
 .checkout-form-actions .checkout-submit {
-  flex: 1;
-  min-width: 12rem;
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+@media (min-width: 420px) {
+  .checkout-form-actions .checkout-submit {
+    flex: 1 1 auto;
+    min-width: min(12rem, 100%);
+  }
 }
 
 .checkout-summary-inline {

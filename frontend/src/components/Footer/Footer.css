@@ -4,7 +4,7 @@
   position: relative;
   overflow: hidden;
   font-family: var(--font-sans);
-  padding: var(--space-10) 0 calc(var(--space-8) + env(safe-area-inset-bottom, 0px));
+  padding: var(--space-10) 0 var(--space-8);
   background: radial-gradient(120% 80% at 50% 0%, #1a5c2e 0%, #0d2815 45%, #071209 100%);
   color: rgba(232, 245, 236, 0.92);
   border-top: 1px solid rgba(125, 216, 122, 0.2);
@@ -164,7 +164,7 @@
 
 @media (min-width: 640px) {
   .footer {
-    padding: var(--space-12) 0 calc(var(--space-10) + env(safe-area-inset-bottom, 0px));
+    padding: var(--space-12) 0 var(--space-10);
   }
 
   .footer-inner {
