@@ -219,7 +219,7 @@ export function AuthProvider({ children }) {
       headers['Content-Type'] = 'application/json';
     }
     return fetch(api(path), { ...options, headers });
-  }, []);
+  }, [getAuthToken]);
 
   const isAdmin = isStaffRole(user?.role);
   const can = useCallback((permission) => hasPermission(user?.role, permission), [user?.role]);
