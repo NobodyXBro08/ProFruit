@@ -1,6 +1,6 @@
 import { corsJson, corsOptionsResponse } from "@/lib/cors";
 import { listOrdersForAdmin } from "@/lib/adminOrders";
-import { requireAdmin } from "@/lib/requireAuth";
+import { requirePermission } from "@/lib/requireAuth";
 import { apiErrorFromUnknown } from "@/lib/apiError";
 
 export function OPTIONS() {
@@ -8,7 +8,7 @@ export function OPTIONS() {
 }
 
 export async function GET(request: Request) {
-  const auth = requireAdmin(request);
+  const auth = requirePermission(request, "orders:manage");
   if (!auth.ok) return auth.response;
 
   try {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { corsHeaders } from "./cors";
-import type { UserRole } from "./roles";
+import type { Permission, UserRole } from "./roles";
+import { isStaffRole, roleHasPermission } from "./roles";
 import { parseBearerToken, verifyToken } from "./tokens";
 
 export type AuthUser = {
@@ -44,9 +45,26 @@ export function requireAuth(request: Request): AuthResult {
   };
 }
 
-export function requireAdmin(request: Request): AuthResult {
+/** Acceso al panel: editor, admin o super_admin. */
+export function requireStaff(request: Request): AuthResult {
   const auth = requireAuth(request);
   if (!auth.ok) return auth;
-  if (auth.user.role !== "admin") return forbidden("Solo administradores pueden realizar esta acción.");
+  if (!isStaffRole(auth.user.role)) {
+    return forbidden("Solo el personal autorizado puede realizar esta acción.");
+  }
   return auth;
+}
+
+export function requirePermission(request: Request, permission: Permission): AuthResult {
+  const auth = requireAuth(request);
+  if (!auth.ok) return auth;
+  if (!roleHasPermission(auth.user.role, permission)) {
+    return forbidden("No tienes permiso para realizar esta acción.");
+  }
+  return auth;
+}
+
+/** @deprecated Preferir requirePermission / requireStaff. Mantiene compatibilidad. */
+export function requireAdmin(request: Request): AuthResult {
+  return requireStaff(request);
 }

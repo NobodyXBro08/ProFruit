@@ -127,6 +127,30 @@
   font-weight: 800;
   color: #0f766e;
   letter-spacing: -0.02em;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.product-detail-price--promo {
+  color: #c2410c;
+}
+
+.product-detail-price-old {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.product-detail-discount {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: #9a4b0c;
+  background: #fff1e0;
+  border: 1px solid #f0c9a0;
+  border-radius: var(--radius-full);
+  padding: 0.15rem 0.55rem;
 }
 
 .product-detail-desc {

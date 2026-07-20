@@ -1,6 +1,52 @@
-import mysql, { type PoolConnection, type Pool } from "mysql2/promise";
+import mysql, { type PoolConnection, type Pool, type PoolOptions } from "mysql2/promise";
 
 let poolInstance: Pool | undefined;
+
+function normalizePem(value: string): string {
+  return value.includes("\\n") ? value.replace(/\\n/g, "\n") : value;
+}
+
+function readMysqlCaCert(): string | undefined {
+  const b64 = process.env.MYSQL_SSL_CA_B64?.trim();
+  if (b64) {
+    return Buffer.from(b64, "base64").toString("utf8");
+  }
+
+  const raw = process.env.MYSQL_SSL_CA?.trim();
+  if (!raw) return undefined;
+  return normalizePem(raw);
+}
+
+function shouldUseMysqlSsl(host: string): boolean {
+  const flag = process.env.MYSQL_SSL?.trim().toLowerCase();
+  if (flag === "false" || flag === "0") return false;
+  if (flag === "true" || flag === "1") return true;
+
+  const mode = process.env.MYSQL_SSL_MODE?.trim().toUpperCase();
+  if (mode === "REQUIRED" || mode === "VERIFY_CA") return true;
+
+  if (readMysqlCaCert()) return true;
+
+  // Aiven y otros proveedores gestionados suelen exigir TLS.
+  return host.includes("aivencloud.com");
+}
+
+function resolveMysqlSsl(host: string): PoolOptions["ssl"] {
+  if (!shouldUseMysqlSsl(host)) return undefined;
+
+  const ca = readMysqlCaCert();
+  if (!ca) {
+    throw new Error(
+      "Conexión SSL requerida para MySQL. Añade MYSQL_SSL_CA (certificado CA de Aiven) o MYSQL_SSL_CA_B64 en las variables de entorno."
+    );
+  }
+
+  return {
+    ca,
+    rejectUnauthorized: true,
+    minVersion: "TLSv1.2",
+  };
+}
 
 function createPoolFromMysqlEnv(): Pool {
   const host = process.env.MYSQLHOST;
@@ -15,12 +61,15 @@ function createPoolFromMysqlEnv(): Pool {
     throw new Error("MYSQLPORT debe ser un número de puerto válido.");
   }
 
+  const ssl = resolveMysqlSsl(host);
+
   return mysql.createPool({
     host,
     port,
     user,
     password: process.env.MYSQLPASSWORD ?? "",
     database,
+    ssl,
     waitForConnections: true,
     connectionLimit: 10,
   });
@@ -29,7 +78,10 @@ function createPoolFromMysqlEnv(): Pool {
 function getPool(): Pool {
   if (!poolInstance) {
     poolInstance = createPoolFromMysqlEnv();
-    console.log("MySQL pool inicializado (MYSQLHOST / MYSQLDATABASE).");
+    const sslOn = shouldUseMysqlSsl(process.env.MYSQLHOST ?? "");
+    console.log(
+      `MySQL pool inicializado (${process.env.MYSQLHOST}/${process.env.MYSQLDATABASE}, SSL: ${sslOn ? "on" : "off"}).`
+    );
   }
   return poolInstance;
 }

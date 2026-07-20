@@ -154,12 +154,30 @@
 }
 
 .product-card__price {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
   font-size: var(--text-xl);
   font-weight: 800;
   color: var(--card-accent);
   letter-spacing: -0.02em;
   margin-bottom: var(--space-3);
+}
+
+.product-card__price-old {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.product-card__price--promo > span:last-child {
+  color: #c2410c;
+}
+
+.product-card__badge--promo {
+  background: #fff1e0;
+  color: #9a4b0c;
+  border: 1px solid #f0c9a0;
 }
 
 .product-card__actions {

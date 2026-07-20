@@ -1,0 +1,109 @@
+.admin-users {
+  min-height: 60vh;
+  padding: var(--space-8) 0 var(--space-12);
+  font-family: var(--font-sans);
+  background: linear-gradient(180deg, #fffbf7 0%, #f6faf7 100%);
+}
+
+.admin-users-container {
+  max-width: 56rem;
+}
+
+.admin-users-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-brand-muted);
+  text-decoration: none;
+  margin-bottom: var(--space-4);
+}
+
+.admin-users-back:hover {
+  color: var(--color-brand);
+}
+
+.admin-users-error {
+  color: #b42318;
+  font-size: var(--text-sm);
+}
+
+.admin-users-success {
+  color: var(--color-brand);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.admin-users-muted {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.admin-users-panel {
+  background: var(--white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-6);
+}
+
+.admin-users-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.admin-users-table th,
+.admin-users-table td {
+  text-align: left;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.admin-users-table th {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.admin-users-table small {
+  display: block;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.admin-users-table select {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font: inherit;
+  min-width: 12rem;
+}
+
+.admin-users-help {
+  background: rgba(18, 72, 28, 0.04);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.admin-users-help h2 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-base);
+  color: var(--color-brand);
+}
+
+.admin-users-help ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}

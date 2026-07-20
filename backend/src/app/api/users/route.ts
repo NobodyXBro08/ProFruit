@@ -2,15 +2,20 @@ import { NextResponse } from "next/server";
 import { hashPassword } from "@/lib/auth";
 import { corsHeaders, corsOptionsResponse } from "@/lib/cors";
 import { readJsonBody, parseQueryId } from "@/lib/http";
-import { requireAdmin } from "@/lib/requireAuth";
+import { requirePermission } from "@/lib/requireAuth";
+import { canAssignRole, isUserRole, type UserRole } from "@/lib/roles";
 import { deleteUser, getUserById, listUsers, updateUser } from "@/lib/users";
 
-function validateUpdateBody(body: unknown): { ok: true; data: { id: number; username: string; password?: string } } | { ok: false; error: string } {
+function validateUpdateBody(
+  body: unknown
+):
+  | { ok: true; data: { id: number; username: string; password?: string; role?: UserRole } }
+  | { ok: false; error: string } {
   if (typeof body !== "object" || body === null) {
     return { ok: false, error: "Se esperaba un objeto JSON." };
   }
 
-  const candidate = body as { id?: unknown; username?: unknown; password?: unknown };
+  const candidate = body as { id?: unknown; username?: unknown; password?: unknown; role?: unknown };
   if (!Number.isInteger(candidate.id) || Number(candidate.id) <= 0) {
     return { ok: false, error: "El id es obligatorio y debe ser entero positivo." };
   }
@@ -21,12 +26,21 @@ function validateUpdateBody(body: unknown): { ok: true; data: { id: number; user
     return { ok: false, error: "Si se envía password, no puede estar vacío." };
   }
 
+  let role: UserRole | undefined;
+  if (candidate.role !== undefined) {
+    if (!isUserRole(candidate.role)) {
+      return { ok: false, error: "Rol inválido. Usa: client, editor, admin o super_admin." };
+    }
+    role = candidate.role;
+  }
+
   return {
     ok: true,
     data: {
       id: Number(candidate.id),
       username: candidate.username.trim(),
       password: typeof candidate.password === "string" ? candidate.password : undefined,
+      role,
     },
   };
 }
@@ -36,7 +50,7 @@ export function OPTIONS() {
 }
 
 export async function GET(request: Request) {
-  const auth = requireAdmin(request);
+  const auth = requirePermission(request, "users:manage");
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
@@ -68,7 +82,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const auth = requireAdmin(request);
+  const auth = requirePermission(request, "users:manage");
   if (!auth.ok) return auth.response;
 
   try {
@@ -80,10 +94,26 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: v.error }, { status: 400, headers: corsHeaders });
     }
 
+    if (v.data.role) {
+      if (!canAssignRole(auth.user.role, v.data.role)) {
+        return NextResponse.json(
+          { error: "No tienes permiso para asignar roles." },
+          { status: 403, headers: corsHeaders }
+        );
+      }
+      if (v.data.id === auth.user.id && v.data.role !== "super_admin") {
+        return NextResponse.json(
+          { error: "No puedes quitarte el rol de super administrador." },
+          { status: 400, headers: corsHeaders }
+        );
+      }
+    }
+
     const updated = await updateUser({
       id: v.data.id,
       username: v.data.username,
       passwordHash: v.data.password ? await hashPassword(v.data.password) : undefined,
+      role: v.data.role,
     });
 
     if (!updated) {
@@ -101,7 +131,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const auth = requireAdmin(request);
+  const auth = requirePermission(request, "users:manage");
   if (!auth.ok) return auth.response;
 
   try {
@@ -110,6 +140,13 @@ export async function DELETE(request: Request) {
     const parsed = parseQueryId(id);
     if (!parsed.ok) {
       return NextResponse.json({ error: parsed.error }, { status: 400, headers: corsHeaders });
+    }
+
+    if (parsed.id === auth.user.id) {
+      return NextResponse.json(
+        { error: "No puedes eliminar tu propia cuenta." },
+        { status: 400, headers: corsHeaders }
+      );
     }
 
     const deleted = await deleteUser(parsed.id);

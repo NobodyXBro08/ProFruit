@@ -1,0 +1,14 @@
+# Render Blueprint — backend ProFruit
+# Dashboard: New > Blueprint > conectar repo, o copiar estos valores manualmente.
+
+services:
+  - type: web
+    name: profuit-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production

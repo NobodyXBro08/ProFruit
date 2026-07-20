@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import type { UserRole } from "./roles";
+import { normalizeRole } from "./roles";
 
 export type TokenPayload = {
   sub: number;
@@ -19,7 +20,7 @@ function getSecret(): string {
 }
 
 export function signToken(payload: { sub: number; username: string; role: UserRole }, ttlMs = DEFAULT_TTL_MS): string {
-  const full: TokenPayload = { ...payload, exp: Date.now() + ttlMs };
+  const full: TokenPayload = { ...payload, role: normalizeRole(payload.role), exp: Date.now() + ttlMs };
   const body = Buffer.from(JSON.stringify(full)).toString("base64url");
   const sig = crypto.createHmac("sha256", getSecret()).update(body).digest("base64url");
   return `${body}.${sig}`;
@@ -41,7 +42,10 @@ export function verifyToken(token: string): TokenPayload | null {
     const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as TokenPayload;
     if (!payload?.sub || !payload.username || !payload.role || !payload.exp) return null;
     if (Date.now() > payload.exp) return null;
-    return payload;
+    return {
+      ...payload,
+      role: normalizeRole(payload.role),
+    };
   } catch {
     return null;
   }

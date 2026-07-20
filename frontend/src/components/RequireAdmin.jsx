@@ -6,8 +6,12 @@ import Container from './ui/Container.jsx';
 import Button from './ui/Button.jsx';
 import './RequireAdmin.css';
 
-export default function RequireAdmin({ children }) {
-  const { user, isAdmin, sessionReady } = useAuth();
+/**
+ * Protege rutas del panel. Opcionalmente exige un permiso concreto.
+ * @param {{ children: React.ReactNode, permission?: string }} props
+ */
+export default function RequireAdmin({ children, permission = 'panel:access' }) {
+  const { user, isAdmin, can, sessionReady } = useAuth();
   const { openLogin } = useLoginModal();
 
   if (!sessionReady) {
@@ -22,7 +26,7 @@ export default function RequireAdmin({ children }) {
     return (
       <Container className="require-admin">
         <h1>Acceso restringido</h1>
-        <p>Inicia sesión con una cuenta de administrador.</p>
+        <p>Inicia sesión con una cuenta de personal autorizado.</p>
         <Button type="button" variant="primary" size="md" onClick={openLogin}>
           Iniciar sesión
         </Button>
@@ -33,8 +37,8 @@ export default function RequireAdmin({ children }) {
     );
   }
 
-  if (!isAdmin) {
-    return <Navigate to="/" replace />;
+  if (!isAdmin || !can(permission)) {
+    return <Navigate to={isAdmin ? '/admin' : '/'} replace />;
   }
 
   return children;

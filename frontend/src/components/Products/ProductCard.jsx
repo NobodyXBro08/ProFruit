@@ -22,6 +22,8 @@ export default function ProductCard({
   name,
   description,
   price,
+  originalPrice,
+  promotion,
   image,
   stock,
   weight,
@@ -31,7 +33,9 @@ export default function ProductCard({
 }) {
   const qty = Number(stock);
   const soldOut = !Number.isFinite(qty) || qty <= 0;
+  const hasPromo = Boolean(promotion) && Number(originalPrice) > Number(price);
   const priceLabel = formatPrice(price);
+  const originalLabel = hasPromo ? formatPrice(originalPrice) : null;
   const detailPath = `/producto/${id}`;
 
   return (
@@ -41,6 +45,8 @@ export default function ProductCard({
           <img src={image} alt={name} loading="lazy" />
           {soldOut ? (
             <span className="product-card__badge product-card__badge--sold">Agotado</span>
+          ) : hasPromo ? (
+            <span className="product-card__badge product-card__badge--promo">Oferta</span>
           ) : qty <= 5 ? (
             <span className="product-card__badge product-card__badge--low">Últimas unidades</span>
           ) : (
@@ -66,7 +72,10 @@ export default function ProductCard({
         {description ? <p className="product-card__desc">{description}</p> : null}
 
         <div className="product-card__footer">
-          <span className="product-card__price">{priceLabel}</span>
+          <span className={`product-card__price${hasPromo ? ' product-card__price--promo' : ''}`}>
+            {hasPromo ? <s className="product-card__price-old">{originalLabel}</s> : null}
+            <span>{priceLabel}</span>
+          </span>
           <div className="product-card__actions">
             <Link to={detailPath} className="product-card__detail-btn">
               Ver producto

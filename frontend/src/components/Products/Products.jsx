@@ -124,6 +124,8 @@ export default function Products() {
                     name={product.name}
                     description={product.description}
                     price={product.price}
+                    originalPrice={product.originalPrice}
+                    promotion={product.promotion}
                     image={imgSrc}
                     stock={product.stock}
                     weight={product.weight}

@@ -5,7 +5,7 @@ import { corsHeaders, corsOptionsResponse } from "@/lib/cors";
 import { readJsonBody } from "@/lib/http";
 import { deductStockForConfirmedOrder, OrderError } from "@/lib/orders";
 import { parsePaymentMethod } from "@/lib/orderValidators";
-import { requireAdmin } from "@/lib/requireAuth";
+import { requirePermission } from "@/lib/requireAuth";
 import { apiErrorFromUnknown } from "@/lib/apiError";
 
 export function OPTIONS() {
@@ -29,7 +29,7 @@ function paymentProviderFromNotes(notes: unknown): string {
 
 /** Admin: marca un pedido pendiente como pagado. */
 export async function POST(request: Request) {
-  const auth = requireAdmin(request);
+  const auth = requirePermission(request, "orders:manage");
   if (!auth.ok) return auth.response;
 
   try {
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
 
       const provider = bodyMethod ?? paymentProviderFromNotes(order.notes);
 
-      await deductStockForConfirmedOrder(conn, Number(order.id));
+      await deductStockForConfirmedOrder(conn, Number(order.id), { userId: auth.user.id });
 
       await conn.query(
         "INSERT INTO payments (order_id, provider, amount, status) VALUES (?, ?, ?, ?)",

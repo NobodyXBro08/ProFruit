@@ -56,6 +56,8 @@ export default function ProductDetail() {
   const image = product ? getProductImage(product, productIndex >= 0 ? productIndex : 0) : '';
   const qty = Number(product?.stock);
   const soldOut = !Number.isFinite(qty) || qty <= 0;
+  const hasPromo =
+    Boolean(product?.promotion) && Number(product?.originalPrice) > Number(product?.price);
 
   const handleAdd = () => {
     if (!user) {
@@ -117,7 +119,23 @@ export default function ProductDetail() {
           <div className="product-detail-info">
             {product.weight ? <span className="product-detail-weight">{product.weight}</span> : null}
             <h1 className="product-detail-name">{product.name}</h1>
-            <p className="product-detail-price">{formatPrice(product.price)}</p>
+            <div className={`product-detail-price${hasPromo ? ' product-detail-price--promo' : ''}`}>
+              {hasPromo ? (
+                <>
+                  <s className="product-detail-price-old">{formatPrice(product.originalPrice)}</s>
+                  <span>{formatPrice(product.price)}</span>
+                  {product.promotion?.discountPercent != null ? (
+                    <span className="product-detail-discount">
+                      −{product.promotion.discountPercent}%
+                    </span>
+                  ) : (
+                    <span className="product-detail-discount">Oferta</span>
+                  )}
+                </>
+              ) : (
+                <span>{formatPrice(product.price)}</span>
+              )}
+            </div>
 
             {product.description ? (
               <p className="product-detail-desc">{product.description}</p>

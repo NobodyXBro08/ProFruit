@@ -3,7 +3,7 @@ import { corsHeaders, corsJson, corsOptionsResponse } from "@/lib/cors";
 import { createProduct, deleteProduct, listProducts, updateProduct } from "@/lib/products";
 import { readJsonBody, parseQueryId } from "@/lib/http";
 import { validateProductCreate, validateProductUpdate } from "@/lib/productValidators";
-import { requireAdmin } from "@/lib/requireAuth";
+import { requirePermission } from "@/lib/requireAuth";
 
 export function OPTIONS() {
   return corsOptionsResponse();
@@ -21,7 +21,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const auth = requireAdmin(request);
+  const auth = requirePermission(request, "products:manage");
   if (!auth.ok) return auth.response;
 
   try {
@@ -33,14 +33,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: v.error }, { status: 400, headers: corsHeaders });
     }
 
-    const product = await createProduct({
-      name: v.data.name,
-      description: v.data.description,
-      price: v.data.price,
-      stock: v.data.stock,
-      weight: v.data.weight,
-      image: v.data.image,
-    });
+    const product = await createProduct(
+      {
+        name: v.data.name,
+        description: v.data.description,
+        price: v.data.price,
+        stock: v.data.stock,
+        weight: v.data.weight,
+        image: v.data.image,
+      },
+      { userId: auth.user.id }
+    );
     return NextResponse.json(product, { status: 201, headers: corsHeaders });
   } catch (error) {
     console.error(error);
@@ -49,7 +52,7 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const auth = requireAdmin(request);
+  const auth = requirePermission(request, "products:manage");
   if (!auth.ok) return auth.response;
 
   try {
@@ -61,15 +64,18 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: v.error }, { status: 400, headers: corsHeaders });
     }
 
-    const updated = await updateProduct({
-      id: v.data.id,
-      name: v.data.name,
-      description: v.data.description,
-      price: v.data.price,
-      stock: v.data.stock,
-      weight: v.data.weight,
-      image: v.data.image,
-    });
+    const updated = await updateProduct(
+      {
+        id: v.data.id,
+        name: v.data.name,
+        description: v.data.description,
+        price: v.data.price,
+        stock: v.data.stock,
+        weight: v.data.weight,
+        image: v.data.image,
+      },
+      { userId: auth.user.id }
+    );
 
     if (!updated) {
       return NextResponse.json(
@@ -90,7 +96,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const auth = requireAdmin(request);
+  const auth = requirePermission(request, "products:manage");
   if (!auth.ok) return auth.response;
 
   try {

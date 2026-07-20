@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../config/api';
 import { formatApiError } from '../utils/apiError';
+import { hasPermission, isStaffRole, normalizeRole } from '../utils/roles';
 
 const AuthContext = createContext(null);
 
@@ -10,10 +11,6 @@ function normalizeUserId(value) {
   const n = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN;
   if (!Number.isInteger(n) || n < 1) return null;
   return n;
-}
-
-function normalizeRole(value) {
-  return value === 'admin' ? 'admin' : 'client';
 }
 
 function readStoredToken() {
@@ -224,11 +221,23 @@ export function AuthProvider({ children }) {
     return fetch(api(path), { ...options, headers });
   }, []);
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = isStaffRole(user?.role);
+  const can = useCallback((permission) => hasPermission(user?.role, permission), [user?.role]);
 
   const value = useMemo(
-    () => ({ user, login, register, logout, authFetch, getAuthToken, isAdmin, sessionReady, sessionError }),
-    [user, login, register, logout, authFetch, getAuthToken, isAdmin, sessionReady, sessionError],
+    () => ({
+      user,
+      login,
+      register,
+      logout,
+      authFetch,
+      getAuthToken,
+      isAdmin,
+      can,
+      sessionReady,
+      sessionError,
+    }),
+    [user, login, register, logout, authFetch, getAuthToken, isAdmin, can, sessionReady, sessionError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

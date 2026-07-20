@@ -15,6 +15,9 @@ import Checkout from './pages/Checkout.jsx';
 import AdminProducts from './pages/AdminProducts.jsx';
 import AdminOrders from './pages/AdminOrders.jsx';
 import AdminHome from './pages/AdminHome.jsx';
+import AdminInventory from './pages/AdminInventory.jsx';
+import AdminPromotions from './pages/AdminPromotions.jsx';
+import AdminUsers from './pages/AdminUsers.jsx';
 import RequireAdmin from './components/RequireAdmin.jsx';
 import './App.css';
 
@@ -55,7 +58,7 @@ function AppRoutes() {
       <Route
         path="/admin/pedidos"
         element={
-          <RequireAdmin>
+          <RequireAdmin permission="orders:manage">
             <AdminOrders />
           </RequireAdmin>
         }
@@ -63,8 +66,32 @@ function AppRoutes() {
       <Route
         path="/admin/productos"
         element={
-          <RequireAdmin>
+          <RequireAdmin permission="products:manage">
             <AdminProducts />
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/inventario"
+        element={
+          <RequireAdmin permission="inventory:manage">
+            <AdminInventory />
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/promociones"
+        element={
+          <RequireAdmin permission="promotions:manage">
+            <AdminPromotions />
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/usuarios"
+        element={
+          <RequireAdmin permission="users:manage">
+            <AdminUsers />
           </RequireAdmin>
         }
       />

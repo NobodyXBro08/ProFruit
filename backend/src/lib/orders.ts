@@ -45,12 +45,46 @@ export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedO
       throw new OrderError(`Producto(s) no encontrado(s): ${missing.join(", ")}.`, 400);
     }
 
+    const promoByProduct = new Map<number, { discountPercent: number | null; promoPrice: number | null }>();
+    try {
+      const [promoRows] = await conn.query<RowDataPacket[]>(
+        `SELECT product_id, discount_percent, promo_price
+         FROM promotions
+         WHERE product_id IN (${placeholders})
+           AND active = 1
+           AND starts_at <= NOW()
+           AND ends_at >= NOW()
+         ORDER BY id DESC`,
+        productIds
+      );
+      for (const pr of promoRows) {
+        const pid = Number(pr.product_id);
+        if (promoByProduct.has(pid)) continue;
+        promoByProduct.set(pid, {
+          discountPercent: pr.discount_percent != null ? Number(pr.discount_percent) : null,
+          promoPrice: pr.promo_price != null ? Number(pr.promo_price) : null,
+        });
+      }
+    } catch {
+      // Tabla promotions puede no existir en instalaciones antiguas.
+    }
+
     const byId = new Map<number, { price: number; available: number }>();
     for (const r of lockedRows) {
       const total = Number(r.stock);
       const reserved = Number(r.stock_reserved ?? 0);
       const available = total - reserved;
-      byId.set(Number(r.id), { price: Number(r.price), available });
+      const listPrice = Number(r.price);
+      const promo = promoByProduct.get(Number(r.id));
+      let unitPrice = listPrice;
+      if (promo) {
+        if (promo.promoPrice != null && Number.isFinite(promo.promoPrice)) {
+          unitPrice = Math.round(Math.max(0, promo.promoPrice) * 100) / 100;
+        } else if (promo.discountPercent != null && Number.isFinite(promo.discountPercent)) {
+          unitPrice = Math.round(Math.max(0, listPrice * (1 - promo.discountPercent / 100)) * 100) / 100;
+        }
+      }
+      byId.set(Number(r.id), { price: unitPrice, available });
     }
 
     let total = 0;
@@ -130,7 +164,11 @@ export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedO
  * Dentro de una transacción: descuenta `stock` y libera `stock_reserved`
  * según `order_items` (pedido creado en `pending` con reserva previa).
  */
-export async function deductStockForConfirmedOrder(conn: PoolConnection, orderId: number): Promise<void> {
+export async function deductStockForConfirmedOrder(
+  conn: PoolConnection,
+  orderId: number,
+  options?: { userId?: number | null }
+): Promise<void> {
   const [items] = await conn.query<RowDataPacket[]>(
     "SELECT product_id, quantity FROM order_items WHERE order_id = ?",
     [orderId]
@@ -139,12 +177,37 @@ export async function deductStockForConfirmedOrder(conn: PoolConnection, orderId
   for (const row of items) {
     const pid = Number(row.product_id);
     const qty = Number(row.quantity);
+
+    const [beforeRows] = await conn.query<RowDataPacket[]>(
+      "SELECT stock FROM products WHERE id = ? FOR UPDATE",
+      [pid]
+    );
+    const stockBefore = beforeRows.length ? Number(beforeRows[0].stock) : 0;
+
     const [upd] = await conn.query<ResultSetHeader>(
       "UPDATE products SET stock = stock - ?, stock_reserved = stock_reserved - ? WHERE id = ? AND stock_reserved >= ? AND stock >= ?",
       [qty, qty, pid, qty, qty]
     );
     if (upd.affectedRows !== 1) {
       throw new OrderError(`Inventario inconsistente para el producto ${pid}.`, 500);
+    }
+
+    try {
+      await conn.execute(
+        `INSERT INTO stock_movements
+           (product_id, user_id, movement_type, quantity, stock_before, stock_after, note)
+         VALUES (?, ?, 'sale', ?, ?, ?, ?)`,
+        [
+          pid,
+          options?.userId ?? null,
+          qty,
+          stockBefore,
+          stockBefore - qty,
+          `Venta confirmada · pedido #${orderId}`,
+        ]
+      );
+    } catch {
+      // stock_movements puede no existir aún.
     }
   }
 }

@@ -1,0 +1,226 @@
+.admin-promotions {
+  min-height: 60vh;
+  padding: var(--space-8) 0 var(--space-12);
+  font-family: var(--font-sans);
+  background: linear-gradient(180deg, #fffbf7 0%, #f6faf7 100%);
+}
+
+.admin-promotions-container {
+  max-width: 72rem;
+}
+
+.admin-promotions-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-brand-muted);
+  text-decoration: none;
+  margin-bottom: var(--space-4);
+}
+
+.admin-promotions-back:hover {
+  color: var(--color-brand);
+}
+
+.admin-promotions-layout {
+  display: grid;
+  gap: var(--space-6);
+}
+
+@media (min-width: 960px) {
+  .admin-promotions-layout {
+    grid-template-columns: 1.2fr 1fr;
+    align-items: start;
+  }
+}
+
+.admin-promotions-panel {
+  background: var(--white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-promotions-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.admin-promotions-panel h2,
+.admin-promotions-list-head h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--color-brand);
+}
+
+.admin-promotions-muted {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.admin-promotions-error {
+  color: #b42318;
+  font-size: var(--text-sm);
+}
+
+.admin-promotions-success {
+  color: var(--color-brand);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.admin-promotions-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-promotions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.admin-promotions-table th,
+.admin-promotions-table td {
+  text-align: left;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.admin-promotions-table th {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.admin-promotions-table small {
+  display: block;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.admin-promotions-table tr.is-active {
+  background: rgba(18, 72, 28, 0.04);
+}
+
+.admin-promotions-badge {
+  display: inline-flex;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.admin-promotions-badge--live {
+  background: rgba(18, 72, 28, 0.12);
+  color: var(--color-brand);
+}
+
+.admin-promotions-badge--scheduled {
+  background: #eef4ff;
+  color: #1d4ed8;
+}
+
+.admin-promotions-badge--off {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.admin-promotions-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.admin-promotions-actions button {
+  border: 1px solid var(--color-border-strong);
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: 0.25rem 0.5rem;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--color-brand-muted);
+}
+
+.admin-promotions-actions button.is-danger {
+  color: #b42318;
+}
+
+.admin-promotions-form {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.admin-promotions-form label,
+.admin-promotions-mode label {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-brand-muted);
+}
+
+.admin-promotions-form input,
+.admin-promotions-form select {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font: inherit;
+}
+
+.admin-promotions-form-row {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 520px) {
+  .admin-promotions-form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.admin-promotions-mode {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.admin-promotions-mode legend {
+  padding: 0 var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-brand);
+}
+
+.admin-promotions-mode label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  grid-template-columns: none;
+}
+
+.admin-promotions-check {
+  display: inline-flex !important;
+  align-items: center;
+  gap: var(--space-2);
+  grid-template-columns: none !important;
+}
+
+.admin-promotions-form-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
