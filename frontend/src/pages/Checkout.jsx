@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaLeaf, FaWhatsapp } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -18,34 +18,66 @@ const emptyForm = {
   city: '',
   address: '',
   paymentMethod: 'whatsapp',
+  saveProfile: true,
 };
+
+function buildSyncWarning(report) {
+  if (!report?.changed) return null;
+  const parts = [];
+  if (report.priceChanged?.length) {
+    parts.push(`Precios actualizados: ${report.priceChanged.join(', ')}.`);
+  }
+  if (report.stockCapped?.length) {
+    parts.push(`Cantidad ajustada por stock: ${report.stockCapped.join(', ')}.`);
+  }
+  if (report.removed?.length) {
+    parts.push(`Sin stock o no disponibles: ${report.removed.join(', ')}.`);
+  }
+  return parts.length ? parts.join(' ') : 'Tu bolsa se actualizó con precios y stock actuales.';
+}
 
 export default function Checkout() {
   const navigate = useNavigate();
   const { user, authFetch, getAuthToken } = useAuth();
-  const { lines, subtotal, clearCart } = useCart();
+  const { lines, subtotal, savings, clearCart, refreshFromApi } = useCart();
   const { openLogin } = useLoginModal();
 
   const [phase, setPhase] = useState('review');
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const [validating, setValidating] = useState(true);
   const [error, setError] = useState(null);
+  const [syncWarning, setSyncWarning] = useState(null);
   const [lastOrder, setLastOrder] = useState(null);
   const [doneMessage, setDoneMessage] = useState(null);
+  const [serverTotalHint, setServerTotalHint] = useState(null);
+
+  const revalidateCart = useCallback(async () => {
+    setValidating(true);
+    try {
+      const report = await refreshFromApi();
+      const warn = buildSyncWarning(report);
+      if (warn) setSyncWarning(warn);
+    } finally {
+      setValidating(false);
+    }
+  }, [refreshFromApi]);
 
   useEffect(() => {
     document.title = 'Checkout · ProFruit';
     window.scrollTo(0, 0);
-  }, []);
+    revalidateCart();
+  }, [revalidateCart]);
 
   useEffect(() => {
-    if (user) {
-      setForm((prev) => ({
-        ...prev,
-        // Nombre completo lo escribe el cliente; no usar username.
-        customerPhone: prev.customerPhone || user.phone || '',
-      }));
-    }
+    if (!user) return;
+    setForm((prev) => ({
+      ...prev,
+      customerName: prev.customerName || user.fullName || '',
+      customerPhone: prev.customerPhone || user.phone || '',
+      city: prev.city || user.city || '',
+      address: prev.address || user.address || user.shippingAddress || '',
+    }));
   }, [user]);
 
   const step = useMemo(() => {
@@ -63,6 +95,7 @@ export default function Checkout() {
     e.preventDefault();
     setError(null);
     setDoneMessage(null);
+    setServerTotalHint(null);
 
     if (lines.length === 0) {
       setError('Tu bolsa está vacía.');
@@ -84,14 +117,31 @@ export default function Checkout() {
       return;
     }
 
-    const orderLines = lines.map((l) => ({
-      name: l.name,
-      quantity: l.quantity,
-      price: l.price,
-    }));
-
     setSubmitting(true);
     try {
+      const report = await refreshFromApi();
+      const warn = buildSyncWarning(report);
+      if (warn) {
+        setSyncWarning(warn);
+        setError(`${warn} Revisa el resumen y confirma de nuevo.`);
+        setSubmitting(false);
+        return;
+      }
+
+      const freshLines = Array.isArray(report.lines) && report.lines.length ? report.lines : lines;
+      if (freshLines.length === 0) {
+        throw new Error('Tu bolsa quedó vacía tras validar el stock.');
+      }
+
+      const cartTotalBefore =
+        Math.round(freshLines.reduce((s, l) => s + l.quantity * l.price, 0) * 100) / 100;
+
+      const orderLines = freshLines.map((l) => ({
+        name: l.name,
+        quantity: l.quantity,
+        price: l.price,
+      }));
+
       const res = await authFetch('/api/orders', {
         method: 'POST',
         body: JSON.stringify({
@@ -101,7 +151,8 @@ export default function Checkout() {
           city: form.city.trim(),
           address: form.address.trim(),
           paymentMethod: form.paymentMethod,
-          items: lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
+          saveProfile: Boolean(form.saveProfile),
+          items: freshLines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -114,16 +165,32 @@ export default function Checkout() {
         throw new Error(`${base}${extra}`);
       }
 
+      const serverTotal = Number(data.total);
+      if (Number.isFinite(serverTotal) && Math.abs(serverTotal - cartTotalBefore) > 0.01) {
+        setServerTotalHint(
+          `El total cobrado por el servidor es ${formatPrice(serverTotal)} (tu bolsa mostraba ${formatPrice(cartTotalBefore)}).`,
+        );
+      }
+
+      const nameByProductId = new Map(freshLines.map((l) => [l.productId, l.name]));
+      const confirmedLines = Array.isArray(data.items) && data.items.length
+        ? data.items.map((item) => ({
+            name: nameByProductId.get(item.productId) || `Producto #${item.productId}`,
+            quantity: item.quantity,
+            price: item.unitPrice,
+          }))
+        : orderLines;
+
       clearCart();
       setLastOrder({
         id: Number(data.id),
-        total: Number(data.total),
+        total: serverTotal,
         paymentMethod: form.paymentMethod,
         customerName: form.customerName.trim(),
         customerPhone: form.customerPhone.trim(),
         city: form.city.trim(),
         address: form.address.trim(),
-        lines: orderLines,
+        lines: confirmedLines,
       });
       setPhase('payment');
     } catch (err) {
@@ -206,6 +273,9 @@ export default function Checkout() {
           </li>
         </ol>
 
+        {validating ? <p className="checkout-form-note">Comprobando precios y stock…</p> : null}
+        {syncWarning ? <p className="checkout-msg checkout-msg--warn">{syncWarning}</p> : null}
+
         <div className="checkout-layout">
           <section className="checkout-main" aria-label="Detalle del pedido">
             {(phase === 'review' || phase === 'shipping') && (
@@ -223,6 +293,9 @@ export default function Checkout() {
                         <span className="checkout-line-name">{line.name}</span>
                         <span className="checkout-line-meta">
                           {line.quantity} × {formatPrice(line.price)}
+                          {line.originalPrice != null && line.originalPrice > line.price ? (
+                            <> · <s>{formatPrice(line.originalPrice)}</s></>
+                          ) : null}
                         </span>
                       </div>
                       <span className="checkout-line-total">{formatPrice(line.quantity * line.price)}</span>
@@ -240,7 +313,14 @@ export default function Checkout() {
                         </Button>
                       </div>
                     ) : (
-                      <Button type="button" variant="dark" size="md" className="checkout-submit" onClick={() => setPhase('shipping')}>
+                      <Button
+                        type="button"
+                        variant="dark"
+                        size="md"
+                        className="checkout-submit"
+                        disabled={validating || lines.length === 0}
+                        onClick={() => setPhase('shipping')}
+                      >
                         Continuar con datos de envío
                       </Button>
                     )}
@@ -251,7 +331,7 @@ export default function Checkout() {
                   <form className="checkout-form" onSubmit={handleConfirmOrder}>
                     <h2 className="checkout-section-title">Datos de envío y contacto</h2>
                     <p className="checkout-form-note">
-                      Al confirmar podrás enviar el resumen completo por WhatsApp.
+                      Al confirmar podrás enviar el resumen completo por WhatsApp. El total final lo calcula el servidor con precios actuales.
                     </p>
 
                     <div className="checkout-fields">
@@ -300,6 +380,15 @@ export default function Checkout() {
                       </label>
                     </div>
 
+                    <label className="checkout-save-profile">
+                      <input
+                        type="checkbox"
+                        checked={form.saveProfile}
+                        onChange={(e) => setField('saveProfile', e.target.checked)}
+                      />
+                      <span>Guardar estos datos en mi perfil para la próxima compra</span>
+                    </label>
+
                     <h3 className="checkout-subsection-title">Forma de pago</h3>
                     <fieldset className="checkout-payment-options">
                       {PAYMENT_METHODS.map((method) => (
@@ -340,6 +429,7 @@ export default function Checkout() {
                 <p className="checkout-order-status">
                   Pago: <strong>{paymentMethodLabel(lastOrder.paymentMethod)}</strong>
                 </p>
+                {serverTotalHint ? <p className="checkout-msg checkout-msg--warn">{serverTotalHint}</p> : null}
 
                 <div className="checkout-summary-inline">
                   <h3>Resumen del pedido</h3>
@@ -357,7 +447,7 @@ export default function Checkout() {
                     ))}
                   </ul>
                   <p className="checkout-summary-inline-total">
-                    Total: <strong>{formatPrice(lastOrder.total)}</strong>
+                    Total (servidor): <strong>{formatPrice(lastOrder.total)}</strong>
                   </p>
                   <p className="checkout-form-note">
                     Envío a {lastOrder.address}, {lastOrder.city}
@@ -389,6 +479,9 @@ export default function Checkout() {
                   <FaWhatsapp aria-hidden />
                   Enviar por WhatsApp
                 </Button>
+                <Button type="button" variant="secondary" size="md" onClick={() => navigate('/mis-pedidos')}>
+                  Ver mis pedidos
+                </Button>
                 <Button type="button" variant="dark" size="md" onClick={() => navigate('/#products')}>
                   Seguir comprando
                 </Button>
@@ -410,10 +503,19 @@ export default function Checkout() {
                   </li>
                 ))}
               </ul>
+              {savings > 0 && !lastOrder ? (
+                <div className="checkout-summary-row">
+                  <span>Ahorras</span>
+                  <strong>{formatPrice(savings)}</strong>
+                </div>
+              ) : null}
               <div className="checkout-summary-row checkout-summary-row--total">
-                <span>Total</span>
+                <span>{lastOrder ? 'Total cobrado' : 'Total estimado'}</span>
                 <strong>{formatPrice(summaryTotal)}</strong>
               </div>
+              {!lastOrder ? (
+                <p className="checkout-payment-note">El total definitivo lo confirma el servidor al registrar el pedido.</p>
+              ) : null}
               {selectedMethod && phase === 'shipping' ? (
                 <p className="checkout-payment-note">Pago: {selectedMethod.label}</p>
               ) : null}

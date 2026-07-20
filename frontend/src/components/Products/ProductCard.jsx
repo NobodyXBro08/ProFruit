@@ -32,6 +32,12 @@ export default function ProductCard({
   const hasPromo = Boolean(promotion) && Number(originalPrice) > Number(price);
   const priceLabel = formatPrice(price);
   const originalLabel = hasPromo ? formatPrice(originalPrice) : null;
+  const savingsAmount = hasPromo
+    ? Math.round((Number(originalPrice) - Number(price)) * 100) / 100
+    : 0;
+  const savingsPercent = hasPromo
+    ? Math.round(((Number(originalPrice) - Number(price)) / Number(originalPrice)) * 100)
+    : 0;
   const detailPath = `/producto/${id}`;
 
   return (
@@ -42,7 +48,9 @@ export default function ProductCard({
           {soldOut ? (
             <span className="product-card__badge product-card__badge--sold">Agotado</span>
           ) : hasPromo ? (
-            <span className="product-card__badge product-card__badge--promo">Oferta</span>
+            <span className="product-card__badge product-card__badge--promo">
+              {savingsPercent > 0 ? `−${savingsPercent}%` : 'Oferta'}
+            </span>
           ) : qty <= 5 ? (
             <span className="product-card__badge product-card__badge--low">Últimas unidades</span>
           ) : (
@@ -71,6 +79,9 @@ export default function ProductCard({
           <span className={`product-card__price${hasPromo ? ' product-card__price--promo' : ''}`}>
             {hasPromo ? <s className="product-card__price-old">{originalLabel}</s> : null}
             <span>{priceLabel}</span>
+            {hasPromo && savingsAmount > 0 ? (
+              <small className="product-card__savings">Ahorras {formatPrice(savingsAmount)}</small>
+            ) : null}
           </span>
           <div className="product-card__actions">
             <Link to={detailPath} className="product-card__detail-btn">

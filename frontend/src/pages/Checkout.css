@@ -387,6 +387,26 @@
   color: var(--color-danger);
 }
 
+.checkout-msg--warn {
+  background: #fff8eb;
+  color: #9a6700;
+  border: 1px solid #f5d9a8;
+}
+
+.checkout-save-profile {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.checkout-save-profile input {
+  margin-top: 0.2rem;
+}
+
 .checkout-msg--success {
   background: var(--color-success-bg);
   color: var(--color-brand);

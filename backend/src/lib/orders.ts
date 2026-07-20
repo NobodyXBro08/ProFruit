@@ -295,3 +295,143 @@ export async function expireStalePendingOrders(maxAgeHours = 48): Promise<number
     return 0;
   }
 }
+
+const FULFILLMENT_TRANSITIONS: Record<string, string[]> = {
+  paid: ["preparing"],
+  preparing: ["shipped"],
+  shipped: ["delivered"],
+};
+
+export type CustomerOrderItem = {
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+};
+
+export type CustomerOrder = {
+  id: number;
+  status: string;
+  total: number;
+  customerName: string;
+  customerPhone: string;
+  city: string;
+  address: string;
+  paymentMethod: string;
+  createdAt: string;
+  items: CustomerOrderItem[];
+};
+
+function parseShipping(raw: unknown): { city: string; address: string } {
+  if (typeof raw !== "string" || !raw.trim()) return { city: "", address: "" };
+  try {
+    const o = JSON.parse(raw) as { city?: string; address?: string; line?: string };
+    return {
+      city: typeof o.city === "string" ? o.city : "",
+      address: typeof o.address === "string" ? o.address : typeof o.line === "string" ? o.line : raw,
+    };
+  } catch {
+    return { city: "", address: raw };
+  }
+}
+
+function parsePaymentMethod(notes: unknown): string {
+  const s = typeof notes === "string" ? notes : "";
+  const match = s.match(/payment_method:([a-z]+)/);
+  return match?.[1] ?? "manual";
+}
+
+/** Lista pedidos del cliente autenticado. */
+export async function listOrdersForUser(userId: number): Promise<CustomerOrder[]> {
+  const { query } = await import("./db");
+  const rows = await query<Record<string, unknown>>(
+    `SELECT
+       o.id,
+       o.status,
+       o.total,
+       o.customer_name,
+       o.customer_phone,
+       o.shipping_address,
+       o.notes,
+       o.created_at,
+       oi.product_id,
+       oi.quantity,
+       oi.unit_price,
+       p.name AS product_name
+     FROM orders o
+     LEFT JOIN order_items oi ON oi.order_id = o.id
+     LEFT JOIN products p ON p.id = oi.product_id
+     WHERE o.user_id = ?
+     ORDER BY o.created_at DESC, o.id DESC, oi.id ASC`,
+    [userId]
+  );
+
+  const byId = new Map<number, CustomerOrder>();
+  for (const row of rows) {
+    const id = Number(row.id);
+    let order = byId.get(id);
+    if (!order) {
+      const shipping = parseShipping(row.shipping_address);
+      order = {
+        id,
+        status: String(row.status ?? "pending"),
+        total: Number(row.total),
+        customerName: String(row.customer_name ?? ""),
+        customerPhone: String(row.customer_phone ?? ""),
+        city: shipping.city,
+        address: shipping.address,
+        paymentMethod: parsePaymentMethod(row.notes),
+        createdAt:
+          row.created_at instanceof Date
+            ? row.created_at.toISOString()
+            : row.created_at
+              ? String(row.created_at)
+              : "",
+        items: [],
+      };
+      byId.set(id, order);
+    }
+    if (row.product_id != null) {
+      order.items.push({
+        productId: Number(row.product_id),
+        productName: String(row.product_name ?? `Producto #${row.product_id}`),
+        quantity: Number(row.quantity),
+        unitPrice: Number(row.unit_price ?? 0),
+      });
+    }
+  }
+  return Array.from(byId.values());
+}
+
+/**
+ * Avanza el estado de fulfillment: paid → preparing → shipped → delivered.
+ */
+export async function updateOrderFulfillmentStatus(
+  orderId: number,
+  nextStatus: string
+): Promise<{ id: number; status: string }> {
+  const allowed = new Set(["preparing", "shipped", "delivered"]);
+  if (!allowed.has(nextStatus)) {
+    throw new OrderError("Estado de entrega no válido.", 400);
+  }
+
+  return withTransaction(async (conn) => {
+    const [rows] = await conn.query<RowDataPacket[]>(
+      "SELECT id, status FROM orders WHERE id = ? FOR UPDATE",
+      [orderId]
+    );
+    if (!rows.length) throw new OrderError("Orden no encontrada.", 404);
+
+    const current = String(rows[0].status);
+    const nexts = FULFILLMENT_TRANSITIONS[current] ?? [];
+    if (!nexts.includes(nextStatus)) {
+      throw new OrderError(
+        `No se puede pasar de "${current}" a "${nextStatus}". Transiciones válidas: ${nexts.join(", ") || "ninguna"}.`,
+        409
+      );
+    }
+
+    await conn.query("UPDATE orders SET status = ? WHERE id = ?", [nextStatus, orderId]);
+    return { id: orderId, status: nextStatus };
+  });
+}

@@ -11,6 +11,7 @@ import { readJsonBody } from "./http";
 import { parseValidatedCredentials } from "./parseValidatedCredentials";
 import { signToken } from "./tokens";
 import { validateRegisterBody } from "./registerValidators";
+import { getUserProfile } from "./users";
 
 export async function handleRegisterPost(request: Request): Promise<NextResponse> {
   try {
@@ -84,6 +85,22 @@ export async function handleLoginPost(request: Request): Promise<NextResponse> {
       return apiErrorFromUnknown("login/signToken", tokenError, 503);
     }
 
+    let profileExtras: Record<string, string> = {};
+    try {
+      const profile = await getUserProfile(row.id);
+      if (profile) {
+        if (profile.fullName) profileExtras.fullName = profile.fullName;
+        if (profile.phone) profileExtras.phone = profile.phone;
+        if (profile.city) profileExtras.city = profile.city;
+        if (profile.address) {
+          profileExtras.address = profile.address;
+          profileExtras.shippingAddress = profile.address;
+        }
+      }
+    } catch {
+      /* columnas de perfil opcionales */
+    }
+
     return NextResponse.json(
       {
         message: "Autenticación satisfactoria",
@@ -92,6 +109,7 @@ export async function handleLoginPost(request: Request): Promise<NextResponse> {
           id: row.id,
           username: user,
           role: row.role,
+          ...profileExtras,
         },
       },
       { status: 200, headers: corsHeaders }

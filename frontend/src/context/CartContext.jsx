@@ -1,8 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { api } from '../config/api';
 
 const CartContext = createContext(null);
 
 const STORAGE_KEY = 'profruit-cart-v1';
+const TOUCH_KEY = 'profruit-cart-touched-v1';
 
 function loadInitialLines() {
   try {
@@ -22,6 +24,66 @@ function loadInitialLines() {
   } catch {
     return [];
   }
+}
+
+function touchCart() {
+  try {
+    localStorage.setItem(TOUCH_KEY, String(Date.now()));
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Sincroniza líneas del carrito con el catálogo actual (precio, stock, nombre).
+ * @returns {{ changed: boolean, removed: string[], priceChanged: string[], stockCapped: string[] }}
+ */
+function applyCatalogSync(prev, products) {
+  const byId = new Map(products.map((p) => [Number(p.id), p]));
+  const removed = [];
+  const priceChanged = [];
+  const stockCapped = [];
+  let changed = false;
+
+  const next = [];
+  for (const line of prev) {
+    const product = byId.get(line.productId);
+    if (!product) {
+      removed.push(line.name);
+      changed = true;
+      continue;
+    }
+    const stock = Number(product.stock);
+    const price = Number(product.price);
+    if (!Number.isFinite(stock) || stock < 1) {
+      removed.push(line.name);
+      changed = true;
+      continue;
+    }
+    let quantity = line.quantity;
+    if (quantity > stock) {
+      stockCapped.push(line.name);
+      quantity = stock;
+      changed = true;
+    }
+    if (Math.abs(price - line.price) > 0.001) {
+      priceChanged.push(line.name);
+      changed = true;
+    }
+    if (product.name !== line.name || line.maxStock !== stock) {
+      changed = true;
+    }
+    next.push({
+      ...line,
+      name: product.name,
+      price,
+      maxStock: stock,
+      quantity,
+      ...(product.originalPrice != null ? { originalPrice: Number(product.originalPrice) } : { originalPrice: undefined }),
+    });
+  }
+
+  return { lines: next, changed, removed, priceChanged, stockCapped };
 }
 
 export function CartProvider({ children }) {
@@ -46,6 +108,7 @@ export function CartProvider({ children }) {
         : null);
 
     setLines((prev) => {
+      touchCart();
       const i = prev.findIndex((l) => l.productId === product.id);
       if (i === -1) {
         return [
@@ -56,6 +119,9 @@ export function CartProvider({ children }) {
             price,
             maxStock: stock,
             quantity: 1,
+            ...(product.originalPrice != null && Number(product.originalPrice) > price
+              ? { originalPrice: Number(product.originalPrice) }
+              : {}),
             ...(img ? { image: img } : {}),
           },
         ];
@@ -69,6 +135,9 @@ export function CartProvider({ children }) {
         price,
         maxStock: stock,
         quantity: nextQty,
+        ...(product.originalPrice != null && Number(product.originalPrice) > price
+          ? { originalPrice: Number(product.originalPrice) }
+          : {}),
         ...(img ? { image: img } : {}),
       };
       return next;
@@ -78,6 +147,7 @@ export function CartProvider({ children }) {
   const setLineQuantity = useCallback((productId, quantity) => {
     const q = Math.floor(Number(quantity));
     setLines((prev) => {
+      touchCart();
       const i = prev.findIndex((l) => l.productId === productId);
       if (i === -1) return prev;
       const line = prev[i];
@@ -91,6 +161,7 @@ export function CartProvider({ children }) {
 
   const bumpQuantity = useCallback((productId, delta) => {
     setLines((prev) => {
+      touchCart();
       const i = prev.findIndex((l) => l.productId === productId);
       if (i === -1) return prev;
       const line = prev[i];
@@ -104,16 +175,79 @@ export function CartProvider({ children }) {
   }, []);
 
   const removeLine = useCallback((productId) => {
-    setLines((prev) => prev.filter((l) => l.productId !== productId));
+    setLines((prev) => {
+      touchCart();
+      return prev.filter((l) => l.productId !== productId);
+    });
   }, []);
 
-  const clearCart = useCallback(() => setLines([]), []);
+  const clearCart = useCallback(() => {
+    touchCart();
+    setLines([]);
+  }, []);
+
+  const reconcileFromProducts = useCallback((products) => {
+    let report = {
+      changed: false,
+      removed: [],
+      priceChanged: [],
+      stockCapped: [],
+      lines: null,
+    };
+    setLines((prev) => {
+      if (!Array.isArray(products) || prev.length === 0) {
+        report = { ...report, lines: prev };
+        return prev;
+      }
+      const result = applyCatalogSync(prev, products);
+      report = {
+        changed: result.changed,
+        removed: result.removed,
+        priceChanged: result.priceChanged,
+        stockCapped: result.stockCapped,
+        lines: result.lines,
+      };
+      return result.changed ? result.lines : prev;
+    });
+    return report;
+  }, []);
+
+  const refreshFromApi = useCallback(async () => {
+    const empty = { changed: false, removed: [], priceChanged: [], stockCapped: [], lines: null };
+    try {
+      const res = await fetch(api('/api/products'));
+      if (!res.ok) return empty;
+      const data = await res.json().catch(() => []);
+      const products = Array.isArray(data) ? data : [];
+      return reconcileFromProducts(products);
+    } catch {
+      return empty;
+    }
+  }, [reconcileFromProducts]);
+
+  const getLastTouchedAt = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(TOUCH_KEY);
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : 0;
+    } catch {
+      return 0;
+    }
+  }, []);
 
   const totalQuantity = useMemo(() => lines.reduce((s, l) => s + l.quantity, 0), [lines]);
   const subtotal = useMemo(
     () => Math.round(lines.reduce((s, l) => s + l.quantity * l.price, 0) * 100) / 100,
     [lines],
   );
+  const listSubtotal = useMemo(() => {
+    const sum = lines.reduce((s, l) => {
+      const list = l.originalPrice != null && l.originalPrice > l.price ? l.originalPrice : l.price;
+      return s + l.quantity * list;
+    }, 0);
+    return Math.round(sum * 100) / 100;
+  }, [lines]);
+  const savings = Math.round((listSubtotal - subtotal) * 100) / 100;
 
   const value = useMemo(
     () => ({
@@ -123,10 +257,29 @@ export function CartProvider({ children }) {
       bumpQuantity,
       removeLine,
       clearCart,
+      reconcileFromProducts,
+      refreshFromApi,
+      getLastTouchedAt,
       totalQuantity,
       subtotal,
+      listSubtotal,
+      savings,
     }),
-    [lines, addToCart, setLineQuantity, bumpQuantity, removeLine, clearCart, totalQuantity, subtotal],
+    [
+      lines,
+      addToCart,
+      setLineQuantity,
+      bumpQuantity,
+      removeLine,
+      clearCart,
+      reconcileFromProducts,
+      refreshFromApi,
+      getLastTouchedAt,
+      totalQuantity,
+      subtotal,
+      listSubtotal,
+      savings,
+    ],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

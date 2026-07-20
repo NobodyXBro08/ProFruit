@@ -17,6 +17,9 @@ export function validateRegisterBody(
   if (!u || typeof passwordRaw !== "string" || passwordRaw.length === 0) {
     return { ok: false, error: "El usuario y la contraseña son obligatorios y no pueden estar vacíos." };
   }
+  if (passwordRaw.length < 8) {
+    return { ok: false, error: "La contraseña debe tener al menos 8 caracteres." };
+  }
 
   return {
     ok: true,

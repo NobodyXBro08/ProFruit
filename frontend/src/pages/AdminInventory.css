@@ -180,6 +180,30 @@
   color: var(--color-brand-muted);
 }
 
+.admin-inventory-mode {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.admin-inventory-mode button {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+
+.admin-inventory-mode button.is-active {
+  border-color: var(--color-leaf);
+  background: rgba(125, 216, 122, 0.15);
+  color: var(--color-brand);
+}
+
 .admin-inventory-form input {
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-border-strong);

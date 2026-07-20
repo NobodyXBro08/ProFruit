@@ -170,7 +170,7 @@ export default function AdminPromotions() {
 
         <AdminLayout
           title="Promociones"
-          subtitle="Descuentos por producto con fechas de inicio y fin."
+          subtitle="Una sola promoción activa por producto: al activar o crear una, las demás del mismo producto se desactivan."
         >
           <div className="admin-promotions-layout">
             <section className="admin-promotions-panel" aria-label="Listado de promociones">

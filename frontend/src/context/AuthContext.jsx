@@ -13,6 +13,19 @@ function normalizeUserId(value) {
   return n;
 }
 
+function profileFromApiUser(u) {
+  if (!u || typeof u !== 'object') return {};
+  return {
+    ...(typeof u.fullName === 'string' && u.fullName.trim() && { fullName: u.fullName.trim() }),
+    ...(typeof u.phone === 'string' && u.phone.trim() && { phone: u.phone.trim() }),
+    ...(typeof u.city === 'string' && u.city.trim() && { city: u.city.trim() }),
+    ...(typeof u.address === 'string' && u.address.trim() && { address: u.address.trim() }),
+    ...(typeof u.shippingAddress === 'string' &&
+      u.shippingAddress.trim() &&
+      !u.address && { address: u.shippingAddress.trim(), shippingAddress: u.shippingAddress.trim() }),
+  };
+}
+
 function readStoredToken() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -37,11 +50,7 @@ function loadSession() {
       username: o.username.trim(),
       role: normalizeRole(o.role),
       token,
-      ...(typeof o.fullName === 'string' && o.fullName.trim() && { fullName: o.fullName.trim() }),
-      ...(typeof o.phone === 'string' && o.phone.trim() && { phone: o.phone.trim() }),
-      ...(typeof o.shippingAddress === 'string' && o.shippingAddress.trim() && {
-        shippingAddress: o.shippingAddress.trim(),
-      }),
+      ...profileFromApiUser(o),
     };
   } catch {
     return null;
@@ -102,6 +111,7 @@ export function AuthProvider({ children }) {
               username: String(data.user.username).trim(),
               role: normalizeRole(data.user.role),
               token: prev.token,
+              ...profileFromApiUser(data.user),
             };
           });
         }
@@ -151,7 +161,7 @@ export function AuthProvider({ children }) {
     if (!data.user || uid === null || !token || typeof data.user.username !== 'string' || !String(data.user.username).trim()) {
       console.error('[Auth] Login — respuesta incompleta:', data);
       throw new Error(
-        'Respuesta del servidor incompleta (falta token o usuario). ¿JWT_SECRET configurado en Railway?',
+        'Respuesta del servidor incompleta (falta token o usuario). ¿JWT_SECRET configurado en el backend?',
       );
     }
 
@@ -161,9 +171,7 @@ export function AuthProvider({ children }) {
       username: String(u.username).trim(),
       role: normalizeRole(u.role),
       token,
-      ...(u.fullName && { fullName: u.fullName }),
-      ...(u.phone && { phone: u.phone }),
-      ...(u.shippingAddress && { shippingAddress: u.shippingAddress }),
+      ...profileFromApiUser(u),
     };
     setSessionError(null);
     setUser(session);
@@ -190,6 +198,36 @@ export function AuthProvider({ children }) {
     }
     return res.json().catch(() => ({}));
   }, []);
+
+  const updateProfile = useCallback(
+    async (payload) => {
+      const token = (user?.token || readStoredToken()).trim();
+      if (!token) throw new Error('Debes iniciar sesión.');
+      const res = await fetch(api('/api/me'), {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(formatApiError(data, res.status));
+      if (data.user) {
+        setUser((prev) => {
+          if (!prev?.token) return prev;
+          return {
+            ...prev,
+            ...profileFromApiUser(data.user),
+            username: String(data.user.username || prev.username).trim(),
+            role: normalizeRole(data.user.role || prev.role),
+          };
+        });
+      }
+      return data;
+    },
+    [user?.token],
+  );
 
   const logout = useCallback(() => {
     setUser(null);
@@ -229,6 +267,7 @@ export function AuthProvider({ children }) {
       user,
       login,
       register,
+      updateProfile,
       logout,
       authFetch,
       getAuthToken,
@@ -237,7 +276,7 @@ export function AuthProvider({ children }) {
       sessionReady,
       sessionError,
     }),
-    [user, login, register, logout, authFetch, getAuthToken, isAdmin, can, sessionReady, sessionError],
+    [user, login, register, updateProfile, logout, authFetch, getAuthToken, isAdmin, can, sessionReady, sessionError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

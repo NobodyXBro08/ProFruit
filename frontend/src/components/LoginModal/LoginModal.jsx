@@ -3,6 +3,8 @@ import { FaEye, FaEyeSlash, FaTimes } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext.jsx';
 import './LoginModal.css';
 
+const MIN_PASSWORD = 8;
+
 export default function LoginModal({ isOpen, onClose }) {
   const { login, register } = useAuth();
   const [mode, setMode] = useState('login');
@@ -10,14 +12,12 @@ export default function LoginModal({ isOpen, onClose }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [registerOk, setRegisterOk] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     document.body.style.overflow = 'hidden';
     setError(null);
-    setRegisterOk(null);
     setShowPassword(false);
     return () => {
       document.body.style.overflow = '';
@@ -27,23 +27,23 @@ export default function LoginModal({ isOpen, onClose }) {
   useEffect(() => {
     if (!isOpen) return;
     setError(null);
-    setRegisterOk(null);
   }, [mode, isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    setRegisterOk(null);
     setLoading(true);
     try {
       if (mode === 'register') {
-        await register({
-          username: username.trim(),
-          password,
-        });
-        setRegisterOk('Cuenta creada. Ahora puedes iniciar sesión con tu usuario y contraseña.');
-        setMode('login');
+        if (password.length < MIN_PASSWORD) {
+          throw new Error(`La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.`);
+        }
+        const user = username.trim();
+        await register({ username: user, password });
+        await login(user, password);
+        setUsername('');
         setPassword('');
+        onClose();
       } else {
         await login(username, password);
         setUsername('');
@@ -115,7 +115,7 @@ export default function LoginModal({ isOpen, onClose }) {
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                 required
-                minLength={1}
+                minLength={mode === 'register' ? MIN_PASSWORD : 1}
               />
               <button
                 type="button"
@@ -127,6 +127,9 @@ export default function LoginModal({ isOpen, onClose }) {
                 {showPassword ? <FaEyeSlash size={18} aria-hidden /> : <FaEye size={18} aria-hidden />}
               </button>
             </div>
+            {mode === 'register' ? (
+              <span className="login-modal-hint">Mínimo {MIN_PASSWORD} caracteres. Al registrarte entrarás automáticamente.</span>
+            ) : null}
           </label>
 
           {error && (
@@ -137,10 +140,9 @@ export default function LoginModal({ isOpen, onClose }) {
               ) : null}
             </div>
           )}
-          {registerOk && <p className="login-modal-msg login-modal-msg--success">{registerOk}</p>}
 
           <button type="submit" className="login-modal-submit" disabled={loading}>
-            {loading ? 'Espera…' : mode === 'login' ? 'Entrar' : 'Registrarse'}
+            {loading ? 'Espera…' : mode === 'login' ? 'Entrar' : 'Crear cuenta y entrar'}
           </button>
         </form>
       </div>

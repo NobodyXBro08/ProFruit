@@ -170,8 +170,16 @@
   color: var(--color-text-secondary);
 }
 
-.product-card__price--promo > span:last-child {
+.product-card__price--promo > span:last-of-type {
   color: #c2410c;
+}
+
+.product-card__savings {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: #027a48;
+  margin-top: 0.15rem;
 }
 
 .product-card__badge--promo {

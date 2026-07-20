@@ -1,11 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaCheck, FaTimes, FaWhatsapp } from 'react-icons/fa';
+import { FaArrowLeft, FaCheck, FaTimes, FaWhatsapp, FaTruck } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext.jsx';
 import { formatPrice } from '../utils/formatPrice';
 import { paymentMethodLabel } from '../config/payments';
 import { buildWhatsAppCustomerUrl, buildWhatsAppOrderMessage } from '../utils/orderSummary';
 import { formatApiError } from '../utils/apiError';
+import {
+  NEXT_FULFILLMENT_LABELS,
+  nextFulfillmentStatus,
+  orderStatusLabel,
+} from '../utils/orderStatus';
 import AdminLayout from '../components/AdminLayout.jsx';
 import Container from '../components/ui/Container.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -15,6 +20,9 @@ const FILTERS = [
   { id: 'all', label: 'Todos' },
   { id: 'pending', label: 'Pendientes' },
   { id: 'paid', label: 'Confirmados' },
+  { id: 'preparing', label: 'Preparando' },
+  { id: 'shipped', label: 'En camino' },
+  { id: 'delivered', label: 'Entregados' },
   { id: 'cancelled', label: 'Cancelados' },
 ];
 
@@ -28,13 +36,6 @@ function formatDate(iso) {
   } catch {
     return iso;
   }
-}
-
-function statusLabel(status) {
-  if (status === 'paid') return 'Confirmado';
-  if (status === 'pending') return 'Pendiente';
-  if (status === 'cancelled') return 'Cancelado';
-  return status;
 }
 
 function normalizeOrdersPayload(data) {
@@ -52,6 +53,7 @@ export default function AdminOrders() {
   const [message, setMessage] = useState(null);
   const [confirmingId, setConfirmingId] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
+  const [statusId, setStatusId] = useState(null);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -83,15 +85,14 @@ export default function AdminOrders() {
     return orders.filter((o) => o.status === filter);
   }, [orders, filter]);
 
-  const counts = useMemo(
-    () => ({
-      all: orders.length,
-      pending: orders.filter((o) => o.status === 'pending').length,
-      paid: orders.filter((o) => o.status === 'paid').length,
-      cancelled: orders.filter((o) => o.status === 'cancelled').length,
-    }),
-    [orders],
-  );
+  const counts = useMemo(() => {
+    const base = { all: orders.length };
+    for (const f of FILTERS) {
+      if (f.id === 'all') continue;
+      base[f.id] = orders.filter((o) => o.status === f.id).length;
+    }
+    return base;
+  }, [orders]);
 
   const confirmOrder = async (order) => {
     setConfirmingId(order.id);
@@ -134,6 +135,28 @@ export default function AdminOrders() {
     }
   };
 
+  const advanceFulfillment = async (order) => {
+    const next = nextFulfillmentStatus(order.status);
+    if (!next) return;
+    setStatusId(order.id);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await authFetch('/api/admin/orders', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'status', order_id: order.id, status: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(formatApiError(data, res.status));
+      setMessage(`Pedido #${order.id}: ${orderStatusLabel(next)}.`);
+      await loadOrders();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar el estado.');
+    } finally {
+      setStatusId(null);
+    }
+  };
+
   const openWhatsApp = (order) => {
     const lines = order.items.map((item) => ({
       name: item.productName,
@@ -160,7 +183,7 @@ export default function AdminOrders() {
           <FaArrowLeft aria-hidden /> Volver a la tienda
         </Link>
 
-        <AdminLayout title="Pedidos" subtitle="Revisa, confirma, cancela y coordina entregas con tus clientes.">
+        <AdminLayout title="Pedidos" subtitle="Confirma, prepara, envía y entrega. Coordina por WhatsApp.">
           <div className="admin-orders-toolbar">
             <div className="admin-orders-filters" role="tablist" aria-label="Filtrar pedidos">
               {FILTERS.map((f) => (
@@ -172,7 +195,7 @@ export default function AdminOrders() {
                   className={`admin-orders-filter${filter === f.id ? ' admin-orders-filter--active' : ''}`}
                   onClick={() => setFilter(f.id)}
                 >
-                  {f.label} ({counts[f.id]})
+                  {f.label} ({counts[f.id] ?? 0})
                 </button>
               ))}
             </div>
@@ -190,77 +213,92 @@ export default function AdminOrders() {
           ) : null}
 
           <ul className="admin-orders-list">
-            {filteredOrders.map((order) => (
-              <li key={order.id} className="admin-order-card">
-                <div className="admin-order-card-head">
-                  <div>
-                    <h2>Pedido #{order.id}</h2>
-                    <p className="admin-order-meta">{formatDate(order.createdAt)}</p>
+            {filteredOrders.map((order) => {
+              const nextStatus = nextFulfillmentStatus(order.status);
+              return (
+                <li key={order.id} className="admin-order-card">
+                  <div className="admin-order-card-head">
+                    <div>
+                      <h2>Pedido #{order.id}</h2>
+                      <p className="admin-order-meta">{formatDate(order.createdAt)}</p>
+                    </div>
+                    <span className={`admin-order-status admin-order-status--${order.status}`}>
+                      {orderStatusLabel(order.status)}
+                    </span>
                   </div>
-                  <span className={`admin-order-status admin-order-status--${order.status}`}>
-                    {statusLabel(order.status)}
-                  </span>
-                </div>
 
-                <div className="admin-order-grid">
-                  <div>
-                    <h3>Cliente</h3>
-                    <p>{order.customerName}</p>
-                    <p>{order.customerPhone}</p>
-                    <p>
-                      {order.address}
-                      {order.city ? `, ${order.city}` : ''}
-                    </p>
+                  <div className="admin-order-grid">
+                    <div>
+                      <h3>Cliente</h3>
+                      <p>{order.customerName}</p>
+                      <p>{order.customerPhone}</p>
+                      <p>
+                        {order.address}
+                        {order.city ? `, ${order.city}` : ''}
+                      </p>
+                    </div>
+                    <div>
+                      <h3>Pago</h3>
+                      <p>{paymentMethodLabel(order.paymentMethod)}</p>
+                      <p className="admin-order-total">Total: {formatPrice(order.total)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3>Pago</h3>
-                    <p>{paymentMethodLabel(order.paymentMethod)}</p>
-                    <p className="admin-order-total">Total: {formatPrice(order.total)}</p>
+
+                  <div className="admin-order-items">
+                    <h3>Productos</h3>
+                    <ul>
+                      {order.items.map((item) => (
+                        <li key={`${order.id}-${item.productId}-${item.quantity}`}>
+                          {item.productName} × {item.quantity} — {formatPrice(item.quantity * item.unitPrice)}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                </div>
 
-                <div className="admin-order-items">
-                  <h3>Productos</h3>
-                  <ul>
-                    {order.items.map((item) => (
-                      <li key={`${order.id}-${item.productId}-${item.quantity}`}>
-                        {item.productName} × {item.quantity} — {formatPrice(item.quantity * item.unitPrice)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="admin-order-actions">
-                  <Button type="button" variant="primary" size="sm" onClick={() => openWhatsApp(order)}>
-                    <FaWhatsapp aria-hidden /> WhatsApp
-                  </Button>
-                  {order.status === 'pending' ? (
-                    <>
+                  <div className="admin-order-actions">
+                    <Button type="button" variant="primary" size="sm" onClick={() => openWhatsApp(order)}>
+                      <FaWhatsapp aria-hidden /> WhatsApp
+                    </Button>
+                    {order.status === 'pending' ? (
+                      <>
+                        <Button
+                          type="button"
+                          variant="dark"
+                          size="sm"
+                          disabled={confirmingId === order.id || cancellingId === order.id}
+                          onClick={() => confirmOrder(order)}
+                        >
+                          <FaCheck aria-hidden />
+                          {confirmingId === order.id ? 'Confirmando…' : 'Confirmar pedido'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled={confirmingId === order.id || cancellingId === order.id}
+                          onClick={() => cancelOrder(order)}
+                        >
+                          <FaTimes aria-hidden />
+                          {cancellingId === order.id ? 'Cancelando…' : 'Cancelar'}
+                        </Button>
+                      </>
+                    ) : null}
+                    {nextStatus ? (
                       <Button
                         type="button"
                         variant="dark"
                         size="sm"
-                        disabled={confirmingId === order.id || cancellingId === order.id}
-                        onClick={() => confirmOrder(order)}
+                        disabled={statusId === order.id}
+                        onClick={() => advanceFulfillment(order)}
                       >
-                        <FaCheck aria-hidden />
-                        {confirmingId === order.id ? 'Confirmando…' : 'Confirmar pedido'}
+                        <FaTruck aria-hidden />
+                        {statusId === order.id ? 'Actualizando…' : NEXT_FULFILLMENT_LABELS[nextStatus]}
                       </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        disabled={confirmingId === order.id || cancellingId === order.id}
-                        onClick={() => cancelOrder(order)}
-                      >
-                        <FaTimes aria-hidden />
-                        {cancellingId === order.id ? 'Cancelando…' : 'Cancelar'}
-                      </Button>
-                    </>
-                  ) : null}
-                </div>
-              </li>
-            ))}
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </AdminLayout>
       </Container>

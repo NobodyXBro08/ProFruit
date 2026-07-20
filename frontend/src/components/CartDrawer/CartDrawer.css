@@ -318,6 +318,26 @@
   line-height: 1.4;
 }
 
+.cart-drawer-summary-row--save {
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: #027a48;
+}
+
+.cart-drawer-summary-row--save strong {
+  font-size: var(--text-base);
+  color: #027a48;
+}
+
+.cart-drawer-sync {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: #fff8eb;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: #9a6700;
+}
+
 .cart-drawer-guest {
   padding: var(--space-4);
   border-radius: var(--radius-lg);

@@ -11,6 +11,7 @@ import Footer from './components/Footer/Footer.jsx';
 import Home from './pages/Home.jsx';
 import ProductDetail from './pages/ProductDetail.jsx';
 import Checkout from './pages/Checkout.jsx';
+import MyOrders from './pages/MyOrders.jsx';
 import AdminProducts from './pages/AdminProducts.jsx';
 import AdminOrders from './pages/AdminOrders.jsx';
 import AdminHome from './pages/AdminHome.jsx';
@@ -18,6 +19,7 @@ import AdminInventory from './pages/AdminInventory.jsx';
 import AdminPromotions from './pages/AdminPromotions.jsx';
 import AdminUsers from './pages/AdminUsers.jsx';
 import RequireAdmin from './components/RequireAdmin.jsx';
+import AbandonedCartReminder from './components/AbandonedCartReminder.jsx';
 import './App.css';
 
 function ScrollToHash() {
@@ -46,6 +48,7 @@ function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/producto/:id" element={<ProductDetail />} />
       <Route path="/checkout" element={<Checkout />} />
+      <Route path="/mis-pedidos" element={<MyOrders />} />
       <Route
         path="/admin"
         element={
@@ -113,6 +116,7 @@ export default function App() {
             <CartProvider>
               <CartUiProvider>
                 <div className="app-root">
+                  <AbandonedCartReminder />
                   <Navbar />
                   <main id="inicio" className="app-main" tabIndex={-1}>
                     <AppRoutes />

@@ -116,6 +116,21 @@
   color: #495057;
 }
 
+.admin-order-status--preparing {
+  background: rgba(125, 216, 122, 0.22);
+  color: #1b4332;
+}
+
+.admin-order-status--shipped {
+  background: #e8f1ff;
+  color: #1d4ed8;
+}
+
+.admin-order-status--delivered {
+  background: #ecfdf3;
+  color: #027a48;
+}
+
 .admin-order-grid {
   display: grid;
   gap: var(--space-4);

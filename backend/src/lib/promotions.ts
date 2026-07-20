@@ -172,7 +172,30 @@ export async function getActivePromotionsByProductIds(
   return result;
 }
 
+/** Solo una promoción activa por producto: desactiva las demás. */
+export async function deactivateOtherActivePromotions(
+  productId: number,
+  exceptId?: number
+): Promise<void> {
+  if (exceptId != null) {
+    await pool.execute<ResultSetHeader>(
+      "UPDATE promotions SET active = 0 WHERE product_id = ? AND active = 1 AND id <> ?",
+      [productId, exceptId]
+    );
+    return;
+  }
+  await pool.execute<ResultSetHeader>(
+    "UPDATE promotions SET active = 0 WHERE product_id = ? AND active = 1",
+    [productId]
+  );
+}
+
 export async function createPromotion(input: PromotionInput): Promise<Promotion> {
+  const willBeActive = input.active !== false;
+  if (willBeActive) {
+    await deactivateOtherActivePromotions(input.productId);
+  }
+
   const [res] = await pool.execute<ResultSetHeader>(
     `INSERT INTO promotions
        (product_id, name, discount_percent, promo_price, starts_at, ends_at, active)
@@ -184,7 +207,7 @@ export async function createPromotion(input: PromotionInput): Promise<Promotion>
       input.promoPrice ?? null,
       toMysqlDateTime(input.startsAt),
       toMysqlDateTime(input.endsAt),
-      input.active === false ? 0 : 1,
+      willBeActive ? 1 : 0,
     ]
   );
   const created = await getPromotionById(Number(res.insertId));
@@ -193,6 +216,11 @@ export async function createPromotion(input: PromotionInput): Promise<Promotion>
 }
 
 export async function updatePromotion(id: number, input: PromotionInput): Promise<boolean> {
+  const willBeActive = input.active !== false;
+  if (willBeActive) {
+    await deactivateOtherActivePromotions(input.productId, id);
+  }
+
   const [res] = await pool.execute<ResultSetHeader>(
     `UPDATE promotions
      SET product_id = ?, name = ?, discount_percent = ?, promo_price = ?,
@@ -205,7 +233,7 @@ export async function updatePromotion(id: number, input: PromotionInput): Promis
       input.promoPrice ?? null,
       toMysqlDateTime(input.startsAt),
       toMysqlDateTime(input.endsAt),
-      input.active === false ? 0 : 1,
+      willBeActive ? 1 : 0,
       id,
     ]
   );
@@ -213,6 +241,12 @@ export async function updatePromotion(id: number, input: PromotionInput): Promis
 }
 
 export async function setPromotionActive(id: number, active: boolean): Promise<boolean> {
+  if (active) {
+    const promo = await getPromotionById(id);
+    if (promo) {
+      await deactivateOtherActivePromotions(promo.productId, id);
+    }
+  }
   const [res] = await pool.execute<ResultSetHeader>("UPDATE promotions SET active = ? WHERE id = ?", [
     active ? 1 : 0,
     id,

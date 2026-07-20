@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaTimes, FaMinus, FaPlus, FaTrash, FaLeaf, FaArrowRight } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -10,7 +10,8 @@ import './CartDrawer.css';
 export default function CartDrawer({ isOpen, onClose, onRequestLogin }) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { lines, bumpQuantity, removeLine, subtotal } = useCart();
+  const { lines, bumpQuantity, removeLine, subtotal, savings, refreshFromApi } = useCart();
+  const [syncNote, setSyncNote] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -19,6 +20,26 @@ export default function CartDrawer({ isOpen, onClose, onRequestLogin }) {
       document.body.style.overflow = '';
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || lines.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const report = await refreshFromApi();
+      if (cancelled || !report.changed) return;
+      const bits = [];
+      if (report.priceChanged?.length) bits.push('precios');
+      if (report.stockCapped?.length || report.removed?.length) bits.push('stock');
+      setSyncNote(
+        bits.length
+          ? `Bolsa actualizada (${bits.join(' y ')}).`
+          : 'Bolsa actualizada con datos del catálogo.',
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps -- al abrir
 
   const goShop = () => {
     onClose();
@@ -57,6 +78,7 @@ export default function CartDrawer({ isOpen, onClose, onRequestLogin }) {
         </header>
 
         <div className="cart-drawer-scroll">
+          {syncNote ? <p className="cart-drawer-sync">{syncNote}</p> : null}
           {lines.length === 0 ? (
             <div className="cart-drawer-empty">
               <div className="cart-drawer-empty-icon" aria-hidden>
@@ -154,6 +176,12 @@ export default function CartDrawer({ isOpen, onClose, onRequestLogin }) {
                 <span>Subtotal</span>
                 <strong>{formatPrice(subtotal)}</strong>
               </div>
+              {savings > 0 ? (
+                <div className="cart-drawer-summary-row cart-drawer-summary-row--save">
+                  <span>Ahorras</span>
+                  <strong>{formatPrice(savings)}</strong>
+                </div>
+              ) : null}
               <p className="cart-drawer-summary-hint">Envío e impuestos se calculan en el checkout.</p>
             </div>
 

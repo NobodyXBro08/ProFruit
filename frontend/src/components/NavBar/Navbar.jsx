@@ -77,6 +77,13 @@ export default function Navbar() {
           </Link>
         </li>
       ) : null}
+      {user ? (
+        <li>
+          <Link to="/mis-pedidos" onClick={closeMenu}>
+            Mis pedidos
+          </Link>
+        </li>
+      ) : null}
     </>
   );
 
