@@ -48,14 +48,14 @@ export default function Opinions() {
             Lo que dicen <span className="opinions-title-accent">en casa</span>
           </h2>
           <p className="opinions-lead">
-            Opiniones de clientes reales. Sin ruido: solo sabor y servicio.
+            Ejemplos de reseñas ilustrativas (no son testimonios verificados de clientes).
           </p>
         </header>
 
         <div className="opinions-stats">
           <div className="opinions-stat">
             <span className="opinions-stat-value">4.9</span>
-            <span className="opinions-stat-label">Nota media</span>
+            <span className="opinions-stat-label">Meta de nota</span>
           </div>
           <div className="opinions-stat opinions-stat--accent">
             <span className="opinions-stat-value">+12k</span>
@@ -63,7 +63,7 @@ export default function Opinions() {
           </div>
           <div className="opinions-stat">
             <span className="opinions-stat-value">4</span>
-            <span className="opinions-stat-label">Ciudades</span>
+            <span className="opinions-stat-label">Ciudades (meta)</span>
           </div>
         </div>
 

@@ -111,6 +111,11 @@
   color: #2d6a4f;
 }
 
+.admin-order-status--cancelled {
+  background: rgba(108, 117, 125, 0.15);
+  color: #495057;
+}
+
 .admin-order-grid {
   display: grid;
   gap: var(--space-4);

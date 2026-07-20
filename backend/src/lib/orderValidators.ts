@@ -5,6 +5,7 @@ export interface ValidatedOrderItem {
 
 export interface ValidatedOrderCreate {
   items: ValidatedOrderItem[];
+  /** Rellenado por la ruta con el id del token; el body puede omitirlo. */
   userId: number;
   customerName: string;
   customerEmail: string;
@@ -45,9 +46,13 @@ export function validateOrderCreate(
   }
   const o = body as Record<string, unknown>;
 
-  const uid = parsePositiveInt(o.userId ?? o.user_id);
-  if (uid === null) {
-    return { ok: false, error: "El campo userId es obligatorio y debe ser un entero positivo." };
+  // userId del body es opcional (la ruta usa siempre el del token).
+  const uidRaw = o.userId ?? o.user_id;
+  const uid = uidRaw === undefined || uidRaw === null || uidRaw === ""
+    ? 0
+    : parsePositiveInt(uidRaw);
+  if (uidRaw !== undefined && uidRaw !== null && uidRaw !== "" && uid === null) {
+    return { ok: false, error: "El campo userId, si se envía, debe ser un entero positivo." };
   }
 
   const customerName = parseNonEmptyString(o.customerName ?? o.customer_name, 191);
@@ -111,7 +116,7 @@ export function validateOrderCreate(
     ok: true,
     data: {
       items: mergeItems(parsedLines),
-      userId: uid,
+      userId: uid ?? 0,
       customerName,
       customerEmail,
       customerPhone,

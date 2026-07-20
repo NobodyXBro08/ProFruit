@@ -45,12 +45,12 @@ function validateUpdateBody(
   };
 }
 
-export function OPTIONS() {
-  return corsOptionsResponse();
+export function OPTIONS(request: Request) {
+  return corsOptionsResponse(request);
 }
 
 export async function GET(request: Request) {
-  const auth = requirePermission(request, "users:manage");
+  const auth = await requirePermission(request, "users:manage");
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
@@ -82,7 +82,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const auth = requirePermission(request, "users:manage");
+  const auth = await requirePermission(request, "users:manage");
   if (!auth.ok) return auth.response;
 
   try {
@@ -131,7 +131,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const auth = requirePermission(request, "users:manage");
+  const auth = await requirePermission(request, "users:manage");
   if (!auth.ok) return auth.response;
 
   try {

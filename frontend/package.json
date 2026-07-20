@@ -21,10 +21,20 @@
   "scripts": {
     "start": "cross-env PORT=3001 react-scripts start",
     "build": "react-scripts build",
-    "test": "cross-env REACT_APP_API_URL=http://127.0.0.1:3000 react-scripts test",
+    "test": "cross-env CI=true REACT_APP_API_URL=http://127.0.0.1:3000 react-scripts test --watchAll=false",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:ui\"",
     "dev:api": "cd ../backend && npm run dev",
     "dev:ui": "cross-env PORT=3001 react-scripts start"
+  },
+  "jest": {
+    "transformIgnorePatterns": [
+      "node_modules/(?!(react-router|react-router-dom|@remix-run|cookie)/)"
+    ],
+    "moduleNameMapper": {
+      "^react-router-dom$": "<rootDir>/node_modules/react-router-dom/dist/index.js",
+      "^react-router$": "<rootDir>/node_modules/react-router/dist/development/index.js",
+      "^react-router/dom$": "<rootDir>/node_modules/react-router/dist/development/dom-export.js"
+    }
   },
   "eslintConfig": {
     "extends": [

@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FaArrowLeft, FaShoppingCart, FaLeaf } from 'react-icons/fa';
-import { useAuth } from '../context/AuthContext.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
-import { useLoginModal } from '../context/LoginModalContext.jsx';
 import { useCartUi } from '../context/CartUiContext.jsx';
 import { getProductImage } from '../utils/productImages';
 import { formatPrice } from '../utils/formatPrice';
@@ -16,10 +14,8 @@ import './ProductDetail.css';
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { addToCart } = useCart();
   const { showToast } = useToast();
-  const { openLogin } = useLoginModal();
   const { openCart } = useCartUi();
 
   const [product, setProduct] = useState(null);
@@ -60,11 +56,6 @@ export default function ProductDetail() {
     Boolean(product?.promotion) && Number(product?.originalPrice) > Number(product?.price);
 
   const handleAdd = () => {
-    if (!user) {
-      showToast('Inicia sesión para añadir productos a tu bolsa.', 'error');
-      openLogin();
-      return;
-    }
     addToCart(product, image);
     showToast(`«${product.name}» añadido al carrito`);
     openCart();
@@ -160,10 +151,6 @@ export default function ProductDetail() {
               {soldOut ? (
                 <Button type="button" variant="secondary" size="md" disabled>
                   Sin existencias
-                </Button>
-              ) : !user ? (
-                <Button type="button" variant="primary" size="md" onClick={openLogin}>
-                  Iniciar sesión para comprar
                 </Button>
               ) : (
                 <Button type="button" variant="primary" size="md" onClick={handleAdd}>

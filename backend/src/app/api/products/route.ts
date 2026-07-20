@@ -5,8 +5,8 @@ import { readJsonBody, parseQueryId } from "@/lib/http";
 import { validateProductCreate, validateProductUpdate } from "@/lib/productValidators";
 import { requirePermission } from "@/lib/requireAuth";
 
-export function OPTIONS() {
-  return corsOptionsResponse();
+export function OPTIONS(request: Request) {
+  return corsOptionsResponse(request);
 }
 
 export async function GET() {
@@ -21,7 +21,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const auth = requirePermission(request, "products:manage");
+  const auth = await requirePermission(request, "products:manage");
   if (!auth.ok) return auth.response;
 
   try {
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const auth = requirePermission(request, "products:manage");
+  const auth = await requirePermission(request, "products:manage");
   if (!auth.ok) return auth.response;
 
   try {
@@ -96,7 +96,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const auth = requirePermission(request, "products:manage");
+  const auth = await requirePermission(request, "products:manage");
   if (!auth.ok) return auth.response;
 
   try {

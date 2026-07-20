@@ -13,9 +13,7 @@ import './ProductCard.css';
  * @param {string} props.image
  * @param {number} props.stock
  * @param {string} [props.weight]
- * @param {boolean} props.userLoggedIn
  * @param {() => void} props.onAdd
- * @param {() => void} props.onLoginRequest
  */
 export default function ProductCard({
   id,
@@ -27,9 +25,7 @@ export default function ProductCard({
   image,
   stock,
   weight,
-  userLoggedIn,
   onAdd,
-  onLoginRequest,
 }) {
   const qty = Number(stock);
   const soldOut = !Number.isFinite(qty) || qty <= 0;
@@ -83,10 +79,6 @@ export default function ProductCard({
             {soldOut ? (
               <button type="button" className="product-card__cart product-card__cart--disabled" disabled>
                 Sin stock
-              </button>
-            ) : !userLoggedIn ? (
-              <button type="button" className="product-card__cart product-card__cart--login" onClick={onLoginRequest}>
-                Entrar
               </button>
             ) : (
               <button

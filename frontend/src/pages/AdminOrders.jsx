@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaCheck, FaWhatsapp } from 'react-icons/fa';
+import { FaArrowLeft, FaCheck, FaTimes, FaWhatsapp } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext.jsx';
 import { formatPrice } from '../utils/formatPrice';
 import { paymentMethodLabel } from '../config/payments';
@@ -15,6 +15,7 @@ const FILTERS = [
   { id: 'all', label: 'Todos' },
   { id: 'pending', label: 'Pendientes' },
   { id: 'paid', label: 'Confirmados' },
+  { id: 'cancelled', label: 'Cancelados' },
 ];
 
 function formatDate(iso) {
@@ -32,7 +33,14 @@ function formatDate(iso) {
 function statusLabel(status) {
   if (status === 'paid') return 'Confirmado';
   if (status === 'pending') return 'Pendiente';
+  if (status === 'cancelled') return 'Cancelado';
   return status;
+}
+
+function normalizeOrdersPayload(data) {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.orders)) return data.orders;
+  return [];
 }
 
 export default function AdminOrders() {
@@ -43,6 +51,7 @@ export default function AdminOrders() {
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
   const [confirmingId, setConfirmingId] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -51,7 +60,12 @@ export default function AdminOrders() {
       const res = await authFetch('/api/admin/orders');
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(formatApiError(data, res.status));
-      setOrders(Array.isArray(data) ? data : []);
+      setOrders(normalizeOrdersPayload(data));
+      if (data && typeof data.expiredStale === 'number' && data.expiredStale > 0) {
+        setMessage(
+          `Se liberó stock de ${data.expiredStale} pedido(s) pendiente(s) de más de 48 h.`,
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar pedidos.');
     } finally {
@@ -74,6 +88,7 @@ export default function AdminOrders() {
       all: orders.length,
       pending: orders.filter((o) => o.status === 'pending').length,
       paid: orders.filter((o) => o.status === 'paid').length,
+      cancelled: orders.filter((o) => o.status === 'cancelled').length,
     }),
     [orders],
   );
@@ -95,6 +110,27 @@ export default function AdminOrders() {
       setError(err instanceof Error ? err.message : 'No se pudo confirmar el pedido.');
     } finally {
       setConfirmingId(null);
+    }
+  };
+
+  const cancelOrder = async (order) => {
+    if (!window.confirm(`¿Cancelar el pedido #${order.id} y liberar el stock reservado?`)) return;
+    setCancellingId(order.id);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await authFetch('/api/admin/orders', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'cancel', order_id: order.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(formatApiError(data, res.status));
+      setMessage(`Pedido #${order.id} cancelado. Reserva liberada.`);
+      await loadOrders();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo cancelar el pedido.');
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -124,7 +160,7 @@ export default function AdminOrders() {
           <FaArrowLeft aria-hidden /> Volver a la tienda
         </Link>
 
-        <AdminLayout title="Pedidos" subtitle="Revisa, confirma y coordina entregas con tus clientes.">
+        <AdminLayout title="Pedidos" subtitle="Revisa, confirma, cancela y coordina entregas con tus clientes.">
           <div className="admin-orders-toolbar">
             <div className="admin-orders-filters" role="tablist" aria-label="Filtrar pedidos">
               {FILTERS.map((f) => (
@@ -199,16 +235,28 @@ export default function AdminOrders() {
                     <FaWhatsapp aria-hidden /> WhatsApp
                   </Button>
                   {order.status === 'pending' ? (
-                    <Button
-                      type="button"
-                      variant="dark"
-                      size="sm"
-                      disabled={confirmingId === order.id}
-                      onClick={() => confirmOrder(order)}
-                    >
-                      <FaCheck aria-hidden />
-                      {confirmingId === order.id ? 'Confirmando…' : 'Confirmar pedido'}
-                    </Button>
+                    <>
+                      <Button
+                        type="button"
+                        variant="dark"
+                        size="sm"
+                        disabled={confirmingId === order.id || cancellingId === order.id}
+                        onClick={() => confirmOrder(order)}
+                      >
+                        <FaCheck aria-hidden />
+                        {confirmingId === order.id ? 'Confirmando…' : 'Confirmar pedido'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={confirmingId === order.id || cancellingId === order.id}
+                        onClick={() => cancelOrder(order)}
+                      >
+                        <FaTimes aria-hidden />
+                        {cancellingId === order.id ? 'Cancelando…' : 'Cancelar'}
+                      </Button>
+                    </>
                   ) : null}
                 </div>
               </li>

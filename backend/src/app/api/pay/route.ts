@@ -8,8 +8,8 @@ import { parsePaymentMethod } from "@/lib/orderValidators";
 import { requirePermission } from "@/lib/requireAuth";
 import { apiErrorFromUnknown } from "@/lib/apiError";
 
-export function OPTIONS() {
-  return corsOptionsResponse();
+export function OPTIONS(request: Request) {
+  return corsOptionsResponse(request);
 }
 
 function parseOrderId(body: unknown): number | null {
@@ -29,7 +29,7 @@ function paymentProviderFromNotes(notes: unknown): string {
 
 /** Admin: marca un pedido pendiente como pagado. */
 export async function POST(request: Request) {
-  const auth = requirePermission(request, "orders:manage");
+  const auth = await requirePermission(request, "orders:manage");
   if (!auth.ok) return auth.response;
 
   try {

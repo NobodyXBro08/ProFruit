@@ -23,8 +23,7 @@ export function validateCredentials(
   password: unknown
 ): { ok: true } | { ok: false; message: string } {
   const u = typeof username === "string" ? username.trim() : "";
-  const p = typeof password === "string" ? password.trim() : "";
-  if (!u || !p) {
+  if (!u || typeof password !== "string" || password.length === 0) {
     return { ok: false, message: "El usuario y la contraseña son obligatorios y no pueden estar vacíos." };
   }
   return { ok: true };

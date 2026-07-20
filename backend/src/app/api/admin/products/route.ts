@@ -2,12 +2,12 @@ import { corsJson, corsOptionsResponse } from "@/lib/cors";
 import { listProductsForAdmin } from "@/lib/products";
 import { requirePermission } from "@/lib/requireAuth";
 
-export function OPTIONS() {
-  return corsOptionsResponse();
+export function OPTIONS(request: Request) {
+  return corsOptionsResponse(request);
 }
 
 export async function GET(request: Request) {
-  const auth = requirePermission(request, "products:manage");
+  const auth = await requirePermission(request, "products:manage");
   if (!auth.ok) return auth.response;
 
   try {

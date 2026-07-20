@@ -8,7 +8,6 @@ import { CartUiProvider } from './context/CartUiContext.jsx';
 import ToastViewport from './components/ui/ToastViewport.jsx';
 import Navbar from './components/NavBar/Navbar.jsx';
 import Footer from './components/Footer/Footer.jsx';
-import SyncGuestCart from './components/SyncGuestCart.jsx';
 import Home from './pages/Home.jsx';
 import ProductDetail from './pages/ProductDetail.jsx';
 import Checkout from './pages/Checkout.jsx';
@@ -113,7 +112,6 @@ export default function App() {
           <LoginModalProvider>
             <CartProvider>
               <CartUiProvider>
-                <SyncGuestCart />
                 <div className="app-root">
                   <Navbar />
                   <main id="inicio" className="app-main" tabIndex={-1}>

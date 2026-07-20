@@ -11,12 +11,12 @@ import {
 import { validateStockAdjust, validateStockSet } from "@/lib/inventoryValidators";
 import { requirePermission } from "@/lib/requireAuth";
 
-export function OPTIONS() {
-  return corsOptionsResponse();
+export function OPTIONS(request: Request) {
+  return corsOptionsResponse(request);
 }
 
 export async function GET(request: Request) {
-  const auth = requirePermission(request, "inventory:manage");
+  const auth = await requirePermission(request, "inventory:manage");
   if (!auth.ok) return auth.response;
 
   try {
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = requirePermission(request, "inventory:manage");
+  const auth = await requirePermission(request, "inventory:manage");
   if (!auth.ok) return auth.response;
 
   try {

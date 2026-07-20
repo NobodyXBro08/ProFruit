@@ -1,5 +1,6 @@
-# Netlify: en el panel, "Base directory" = frontend (si el repo es monorepo).
-# Recomendado: REACT_APP_API_URL = URL absoluta del API (https://… o http://…, sin barra final). Si falta, el bundle usa el valor por defecto en src/config/api.js.
+# Netlify: Base directory = frontend
+# Variable de entorno obligatoria:
+#   REACT_APP_API_URL=https://profruit-backend.onrender.com
 
 [build]
   command = "npm run build"
@@ -7,3 +8,4 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  REACT_APP_API_URL = "https://profruit-backend.onrender.com"

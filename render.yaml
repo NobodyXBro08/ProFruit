@@ -3,7 +3,7 @@
 
 services:
   - type: web
-    name: profuit-backend
+    name: profruit-backend
     runtime: node
     rootDir: backend
     buildCommand: npm install --include=dev && npm run build
@@ -12,3 +12,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: CORS_ORIGINS
+        value: https://profruitcol.netlify.app,http://localhost:3001,http://127.0.0.1:3001
+      # Definir en el dashboard de Render (no en git):
+      # MYSQLHOST, MYSQLPORT, MYSQLUSER, MYSQLPASSWORD, MYSQLDATABASE
+      # MYSQL_SSL=true (o CA de Aiven), JWT_SECRET

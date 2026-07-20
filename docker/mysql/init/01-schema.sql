@@ -11,9 +11,11 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(191) NULL,
   phone VARCHAR(64) NULL,
   shipping_address TEXT NULL,
+  role VARCHAR(32) NOT NULL DEFAULT 'client',
   PRIMARY KEY (id),
   UNIQUE KEY uk_users_username (username),
-  UNIQUE KEY uk_users_email (email)
+  UNIQUE KEY uk_users_email (email),
+  KEY idx_users_role (role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS products (

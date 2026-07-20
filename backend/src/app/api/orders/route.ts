@@ -5,12 +5,12 @@ import { validateOrderCreate } from "@/lib/orderValidators";
 import { createOrder, OrderError } from "@/lib/orders";
 import { requireAuth } from "@/lib/requireAuth";
 
-export function OPTIONS() {
-  return corsOptionsResponse();
+export function OPTIONS(request: Request) {
+  return corsOptionsResponse(request);
 }
 
 export async function POST(request: Request) {
-  const auth = requireAuth(request);
+  const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
 
   try {

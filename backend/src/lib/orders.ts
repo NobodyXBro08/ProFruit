@@ -212,3 +212,86 @@ export async function deductStockForConfirmedOrder(
     }
   }
 }
+
+/**
+ * Libera `stock_reserved` de un pedido pendiente cancelado (sin tocar stock físico).
+ */
+export async function releaseReservedStockForOrder(
+  conn: PoolConnection,
+  orderId: number
+): Promise<void> {
+  const [items] = await conn.query<RowDataPacket[]>(
+    "SELECT product_id, quantity FROM order_items WHERE order_id = ?",
+    [orderId]
+  );
+
+  for (const row of items) {
+    const pid = Number(row.product_id);
+    const qty = Number(row.quantity);
+    const [upd] = await conn.query<ResultSetHeader>(
+      "UPDATE products SET stock_reserved = stock_reserved - ? WHERE id = ? AND stock_reserved >= ?",
+      [qty, pid, qty]
+    );
+    if (upd.affectedRows !== 1) {
+      throw new OrderError(`No se pudo liberar la reserva del producto ${pid}.`, 500);
+    }
+  }
+}
+
+/** Cancela un pedido pendiente y libera el stock reservado. */
+export async function cancelPendingOrder(orderId: number): Promise<{ id: number; status: string }> {
+  return withTransaction(async (conn) => {
+    const [rows] = await conn.query<RowDataPacket[]>(
+      "SELECT id, status FROM orders WHERE id = ? FOR UPDATE",
+      [orderId]
+    );
+    if (!rows.length) throw new OrderError("Orden no encontrada.", 404);
+
+    const status = String(rows[0].status);
+    if (status !== "pending") {
+      throw new OrderError(
+        status === "cancelled"
+          ? "La orden ya está cancelada."
+          : "Solo se pueden cancelar pedidos en estado pendiente.",
+        409
+      );
+    }
+
+    await releaseReservedStockForOrder(conn, orderId);
+    await conn.query("UPDATE orders SET status = 'cancelled' WHERE id = ?", [orderId]);
+
+    return { id: orderId, status: "cancelled" };
+  });
+}
+
+/**
+ * Cancela pedidos pendientes más antiguos que `maxAgeHours` y libera reservas.
+ * @returns cantidad de pedidos expirados
+ */
+export async function expireStalePendingOrders(maxAgeHours = 48): Promise<number> {
+  const hours = Math.min(Math.max(maxAgeHours, 1), 720);
+
+  try {
+    return await withTransaction(async (conn) => {
+      const [rows] = await conn.query<RowDataPacket[]>(
+        `SELECT id FROM orders
+         WHERE status = 'pending'
+           AND created_at < (NOW() - INTERVAL ? HOUR)
+         FOR UPDATE`,
+        [hours]
+      );
+
+      let expired = 0;
+      for (const row of rows) {
+        const orderId = Number(row.id);
+        await releaseReservedStockForOrder(conn, orderId);
+        await conn.query("UPDATE orders SET status = 'cancelled' WHERE id = ?", [orderId]);
+        expired += 1;
+      }
+      return expired;
+    });
+  } catch (error) {
+    console.warn("expireStalePendingOrders:", error);
+    return 0;
+  }
+}

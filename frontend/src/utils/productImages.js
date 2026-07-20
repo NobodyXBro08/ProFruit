@@ -43,7 +43,6 @@ export const productImages = [
 const NAME_RULES = [
   { keys: ['mango'], image: MangoDeshidratado },
   { keys: ['piña', 'pina'], image: PinaAnillos },
-  { keys: ['chips', 'chip'], image: ChipsDeBanano },
   { keys: ['anillos de manzana', 'anillo de manzana'], image: AnillosDeManzana },
   { keys: ['manzana'], image: ManzanaDeshidratada },
   { keys: ['banano', 'banana'], image: BananaDeshidratada },
@@ -55,7 +54,9 @@ const NAME_RULES = [
   { keys: ['guayaba'], image: Guayaba },
   { keys: ['fresa'], image: FresasSecas },
   { keys: ['kiwi'], image: Kiwi },
+  // Antes que "chips", para que "Chips de aguacate" no use la foto de banano.
   { keys: ['aguacate', 'palta'], image: Aguacate },
+  { keys: ['chips', 'chip'], image: ChipsDeBanano },
   { keys: ['limón', 'limon'], image: Limon },
   { keys: ['sandía', 'sandia'], image: Sandia },
   { keys: ['naranja'], image: Naranja },
@@ -98,6 +99,3 @@ export function getProductImage(product, index = 0) {
   const slot = Number.isInteger(id) && id > 0 ? id - 1 : index;
   return productImages[slot % productImages.length];
 }
-
-/** Compatibilidad con imports antiguos. */
-export const defaultImages = productImages;

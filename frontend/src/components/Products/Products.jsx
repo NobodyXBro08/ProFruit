@@ -1,9 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import './Products.css';
-import { useAuth } from '../../context/AuthContext.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
-import { useLoginModal } from '../../context/LoginModalContext.jsx';
 import { getProductImage } from '../../utils/productImages';
 import { api } from '../../config/api';
 import { SITE } from '../../config/site';
@@ -15,10 +13,8 @@ export default function Products() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { user } = useAuth();
   const { addToCart } = useCart();
   const { showToast } = useToast();
-  const { openLogin } = useLoginModal();
 
   useEffect(() => {
     async function loadProducts() {
@@ -48,11 +44,6 @@ export default function Products() {
   );
 
   const handleAdd = (product, displayIndex) => {
-    if (!user) {
-      showToast('Inicia sesión para añadir productos a tu bolsa.', 'error');
-      openLogin();
-      return;
-    }
     const img = getProductImage(product, displayIndex);
     addToCart(product, img);
     showToast(`«${product.name}» añadido al carrito`);
@@ -129,12 +120,7 @@ export default function Products() {
                     image={imgSrc}
                     stock={product.stock}
                     weight={product.weight}
-                    userLoggedIn={!!user}
                     onAdd={() => handleAdd(product, product._index)}
-                    onLoginRequest={() => {
-                      showToast('Necesitas una cuenta para comprar.', 'error');
-                      openLogin();
-                    }}
                   />
                 </li>
               );

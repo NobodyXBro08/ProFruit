@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+﻿import { render, screen } from '@testing-library/react';
 import App from './App.jsx';
 
 beforeEach(() => {
@@ -18,6 +18,6 @@ test('renderiza la aplicación y muestra la marca en la barra de navegación', a
   render(<App />);
   const marcas = await screen.findAllByText('ProFruit');
   expect(marcas.length).toBeGreaterThanOrEqual(1);
-  const logo = screen.getByRole('link', { name: /ProFruit/i });
+  const logo = screen.getByRole('link', { name: /ProFruit mercado en línea/i });
   expect(logo.getAttribute('href')).toBe('/');
 });

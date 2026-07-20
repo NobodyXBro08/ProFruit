@@ -6,12 +6,12 @@ import { countActivePromotions } from "@/lib/promotions";
 import { requirePermission } from "@/lib/requireAuth";
 import { listUsers } from "@/lib/users";
 
-export function OPTIONS() {
-  return corsOptionsResponse();
+export function OPTIONS(request: Request) {
+  return corsOptionsResponse(request);
 }
 
 export async function GET(request: Request) {
-  const auth = requirePermission(request, "stats:view");
+  const auth = await requirePermission(request, "stats:view");
   if (!auth.ok) return auth.response;
 
   try {

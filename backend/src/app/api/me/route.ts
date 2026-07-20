@@ -1,12 +1,12 @@
-import { corsHeaders, corsJson, corsOptionsResponse } from "@/lib/cors";
+import { corsJson, corsOptionsResponse } from "@/lib/cors";
 import { requireAuth } from "@/lib/requireAuth";
 
-export function OPTIONS() {
-  return corsOptionsResponse();
+export function OPTIONS(request: Request) {
+  return corsOptionsResponse(request);
 }
 
 export async function GET(request: Request) {
-  const auth = requireAuth(request);
+  const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
 
   return corsJson(
@@ -17,6 +17,7 @@ export async function GET(request: Request) {
         role: auth.user.role,
       },
     },
-    200
+    200,
+    request
   );
 }
