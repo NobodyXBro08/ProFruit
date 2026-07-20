@@ -7,6 +7,7 @@ export interface ValidatedOrderCreate {
   items: ValidatedOrderItem[];
   userId: number;
   customerName: string;
+  customerEmail: string;
   customerPhone: string;
   city: string;
   address: string;
@@ -52,6 +53,15 @@ export function validateOrderCreate(
   const customerName = parseNonEmptyString(o.customerName ?? o.customer_name, 191);
   if (!customerName) {
     return { ok: false, error: "El nombre del comprador es obligatorio." };
+  }
+
+  let customerEmail = "";
+  const emailRaw = o.customerEmail ?? o.customer_email;
+  if (emailRaw !== undefined && emailRaw !== null && emailRaw !== "") {
+    if (typeof emailRaw !== "string") {
+      return { ok: false, error: "El correo, si se envía, debe ser texto." };
+    }
+    customerEmail = emailRaw.trim().slice(0, 191);
   }
 
   const customerPhone = parseNonEmptyString(o.customerPhone ?? o.customer_phone, 64);
@@ -103,6 +113,7 @@ export function validateOrderCreate(
       items: mergeItems(parsedLines),
       userId: uid,
       customerName,
+      customerEmail,
       customerPhone,
       city,
       address,

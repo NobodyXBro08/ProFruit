@@ -42,7 +42,7 @@ export default function Checkout() {
     if (user) {
       setForm((prev) => ({
         ...prev,
-        customerName: prev.customerName || user.fullName || user.username || '',
+        // Nombre completo lo escribe el cliente; no usar username.
         customerPhone: prev.customerPhone || user.phone || '',
       }));
     }
@@ -261,6 +261,7 @@ export default function Checkout() {
                           type="text"
                           required
                           autoComplete="name"
+                          placeholder="Como aparece en el envío"
                           value={form.customerName}
                           onChange={(e) => setField('customerName', e.target.value)}
                         />
@@ -271,7 +272,7 @@ export default function Checkout() {
                           type="tel"
                           required
                           autoComplete="tel"
-                          placeholder="Ej. 322 637 8065"
+                          placeholder="300 000 0000"
                           value={form.customerPhone}
                           onChange={(e) => setField('customerPhone', e.target.value)}
                         />

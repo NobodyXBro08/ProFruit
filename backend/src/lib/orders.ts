@@ -119,12 +119,13 @@ export async function createOrder(input: ValidatedOrderCreate): Promise<CreatedO
     });
 
     const [orderResult] = await conn.query<ResultSetHeader>(
-      `INSERT INTO orders (user_id, status, total, customer_name, customer_phone, shipping_address, notes)
-       VALUES (?, 'pending', ?, ?, ?, ?, ?)`,
+      `INSERT INTO orders (user_id, status, total, customer_name, customer_email, customer_phone, shipping_address, notes)
+       VALUES (?, 'pending', ?, ?, ?, ?, ?, ?)`,
       [
         userId,
         total,
         input.customerName,
+        input.customerEmail ?? "",
         input.customerPhone,
         shippingPayload,
         `payment_method:${input.paymentMethod}`,
